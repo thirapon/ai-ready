@@ -214,3 +214,78 @@ body {
   border-color: #f4d0d0;
   color: var(--danger);
 }
+
+/* ===== Login page layout ===== */
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--bg);
+}
+
+/* Brand panel — dark blue gradient with decorative circles */
+.login-brand {
+  background: linear-gradient(135deg, #1a4f8a 0%, #133a66 50%, #0e2a4c 100%);
+  color: white;
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.login-brand::before {
+  content: '';
+  position: absolute;
+  width: 720px;
+  height: 720px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+  pointer-events: none;
+}
+.login-brand::after {
+  content: '';
+  position: absolute;
+  width: 480px;
+  height: 480px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,164,76,0.12) 0%, transparent 70%);
+  bottom: -120px;
+  left: -120px;
+  pointer-events: none;
+}
+
+/* Form panel */
+.login-form-panel {
+  padding: 56px 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--paper);
+}
+
+/* Pane fade-in when switching tabs */
+@keyframes fadePane {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-pane { animation: fadePane 0.22s ease; }
+
+/* Error shake */
+@keyframes authShake {
+  0%,  100% { transform: translateX(0); }
+  25%        { transform: translateX(-5px); }
+  75%        { transform: translateX(5px); }
+}
+.auth-shake { animation: authShake 0.3s; }
+
+/* Responsive */
+@media (max-width: 980px) {
+  .login-shell { grid-template-columns: 1fr; }
+  .login-brand { padding: 40px 32px; }
+  .login-brand-feats { display: none; }
+  .login-form-panel { padding: 40px 32px; }
+}
