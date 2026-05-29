@@ -87,7 +87,7 @@ export function Navbar() {
 
       {/* Login */}
       <a
-        href="#"
+        href="/login"
         className="transition-colors hover:text-bu-blue"
         style={{
           fontSize: 13.5,
@@ -101,7 +101,7 @@ export function Navbar() {
 
       {/* CTA */}
       <a
-        href="#"
+        href="/login"
         className="inline-flex items-center gap-2 transition-colors hover:bg-bu-blue-dark"
         style={{
           background: "#1a4f8a",

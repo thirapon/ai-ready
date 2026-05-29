@@ -5,7 +5,7 @@ const ROLES = [
     iconBg: "#eef4fb",
     iconColor: "#1a4f8a",
     linkLabel: "เข้าหน้าผู้ยื่น",
-    linkHref: "#",
+    linkHref: "/login",
     linkColor: "#1a4f8a",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -20,7 +20,7 @@ const ROLES = [
     iconBg: "#fdf3e3",
     iconColor: "#a16216",
     linkLabel: "เข้า Approver Dashboard",
-    linkHref: "#",
+    linkHref: "/login",
     linkColor: "#1a4f8a",
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

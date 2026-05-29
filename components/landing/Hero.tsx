@@ -250,7 +250,7 @@ export function Hero() {
           {/* CTAs */}
           <div className="flex flex-wrap" style={{ gap: 12 }}>
             <a
-              href="#"
+              href="/login"
               className="inline-flex items-center transition-all hover:-translate-y-px"
               style={{
                 gap: 10,

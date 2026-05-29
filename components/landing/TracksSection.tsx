@@ -265,7 +265,7 @@ export function TracksSection() {
         {/* Track 1 — Approval */}
         <TrackCard
           variant="approval"
-          href="#"
+          href="/login"
           trackNum="TRACK 01"
           name="ยื่นขออนุมัติ School/Industry Framework"
           lead="สำหรับผู้ดูแลหลักสูตรที่ต้องการยื่นขอรับรองสมรรถนะด้าน AI ผ่านคณะกรรมการ AI-Ready Curriculum"
@@ -301,7 +301,7 @@ export function TracksSection() {
         {/* Track 2 — Mapping */}
         <TrackCard
           variant="mapping"
-          href="#"
+          href="/login"
           trackNum="TRACK 02"
           name="Curriculum Mapping"
           lead="สำหรับหลักสูตรที่ผ่านการอนุมัติ แล้ว — แมพรายวิชาเข้ากับสมรรถนะตามกรอบ UNESCO และ School + Industry"
