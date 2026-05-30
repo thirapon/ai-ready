@@ -18,5 +18,10 @@ export function getSupabaseClient() {
     );
   }
 
-  return createClient(url, key);
+  // Disable Next.js fetch cache so every API call gets live data from Supabase
+  return createClient(url, key, {
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
+    },
+  });
 }
