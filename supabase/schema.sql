@@ -29,3 +29,24 @@ CREATE TABLE IF NOT EXISTS login_sessions (
 
 CREATE INDEX IF NOT EXISTS login_sessions_role_idx       ON login_sessions (role);
 CREATE INDEX IF NOT EXISTS login_sessions_created_at_idx ON login_sessions (created_at DESC);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Curriculum submissions (AI-Ready approval track)
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS submissions (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  faculty_code     text        NOT NULL,
+  faculty_name     text        NOT NULL,
+  status           text        NOT NULL DEFAULT 'draft'
+                               CHECK (status IN ('draft','pending','changes','approved')),
+  ref_id           text,                        -- e.g. AI2026-0001
+  version          integer     DEFAULT 0,       -- number of times submitted
+  approver_comment text,                        -- feedback from approver
+  submitted_at     timestamptz,
+  approved_at      timestamptz,
+  last_saved       timestamptz DEFAULT now(),
+  created_at       timestamptz DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_faculty_code_idx ON submissions (faculty_code);
+CREATE INDEX IF NOT EXISTS submissions_status_idx ON submissions (status);
