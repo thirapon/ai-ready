@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await getSupabaseClient()
     .from("submissions")
-    .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved")
+    .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved,form_data")
     .eq("faculty_code", facultyCode)
     .maybeSingle();
 
