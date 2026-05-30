@@ -10,9 +10,11 @@ const CheckIcon = () => (
 interface Props {
   data: FormData;
   set: (key: keyof FormData, value: unknown) => void;
+  lockedFaculty?: string; // pre-filled from session — user cannot change
 }
 
-export function Step1({ data, set }: Props) {
+export function Step1({ data, set, lockedFaculty }: Props) {
+  const isLocked = !!lockedFaculty;
   const facultyList = Object.keys(FACULTY_PROGRAMS);
   const programs = data.faculty ? (FACULTY_PROGRAMS[data.faculty] ?? []) : [];
 
@@ -39,15 +41,28 @@ export function Step1({ data, set }: Props) {
       <div className="card__body">
         <div className="field-grid">
 
-          {/* คณะ */}
+          {/* คณะ — locked to session when logged in as faculty */}
           <div className="field">
             <label className="field__label">คณะ <span className="req">*</span></label>
-            <select className="select" value={data.faculty} onChange={(e) => onFacultyChange(e.target.value)}>
-              <option value="">— เลือกคณะ —</option>
-              {facultyList.map((f) => (
-                <option key={f} value={f}>คณะ{f}</option>
-              ))}
-            </select>
+            {isLocked ? (
+              <div style={{
+                border: "1px solid var(--ink-200)", borderRadius: 6, padding: "10px 12px",
+                fontSize: 14, color: "var(--ink-900)", background: "var(--ink-50)",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}>
+                <span>คณะ{data.faculty}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", letterSpacing: "0.04em", background: "var(--ink-100)", padding: "2px 8px", borderRadius: 4 }}>
+                  จากบัญชีที่ login
+                </span>
+              </div>
+            ) : (
+              <select className="select" value={data.faculty} onChange={(e) => onFacultyChange(e.target.value)}>
+                <option value="">— เลือกคณะ —</option>
+                {facultyList.map((f) => (
+                  <option key={f} value={f}>คณะ{f}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* หลักสูตร */}

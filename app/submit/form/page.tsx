@@ -57,10 +57,18 @@ export default function FormPage() {
       if (sess.role !== "faculty") { router.replace("/login"); return; }
       setSession(sess);
 
-      // Restore local draft
+      // Derive faculty key from session name (strip "คณะ" prefix)
+      const facultyKey = sess.name.replace(/^คณะ/, "").trim();
+
+      // Restore local draft (and always ensure faculty is set from session)
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
-        try { setData(JSON.parse(draft)); } catch { /* ignore */ }
+        try {
+          const parsed = JSON.parse(draft);
+          setData({ ...parsed, faculty: facultyKey });
+        } catch { /* ignore */ }
+      } else {
+        setData((prev) => ({ ...prev, faculty: facultyKey }));
       }
 
       // Fetch existing submission from Supabase
@@ -71,7 +79,8 @@ export default function FormPage() {
             setVersion(d.submission.version ?? 0);
             setRefId(d.submission.ref_id ?? null);
             if (d.submission.form_data && Object.keys(d.submission.form_data).length > 0) {
-              setData(d.submission.form_data as FormData);
+              // Always keep faculty from session even when restoring saved data
+              setData({ ...(d.submission.form_data as FormData), faculty: facultyKey });
             }
           }
         })
@@ -195,7 +204,7 @@ export default function FormPage() {
 
         {/* Card with steps */}
         <div className="card">
-          {step === 0 && <Step1 data={data} set={setField} />}
+          {step === 0 && <Step1 data={data} set={setField} lockedFaculty={session?.name.replace(/^คณะ/, "").trim()} />}
           {step === 1 && <Step2 data={data} setRows={setComps} />}
           {step === 2 && <Step3 data={data} goTo={goTo} consent={consent} setConsent={setConsent} />}
 
