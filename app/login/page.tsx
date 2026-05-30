@@ -2,7 +2,6 @@
 // Passwords are passed as props to LoginForm (Client Component).
 // They are NOT bundled into the client JS bundle.
 
-import { FACULTIES, APPROVER, facultyEnvKey } from "@/lib/faculties";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata = {
@@ -10,17 +9,6 @@ export const metadata = {
 };
 
 export default function LoginPage() {
-  // Read all passwords server-side from env vars
-  const demoFaculties = FACULTIES.map((f) => ({
-    code: f.code,
-    name: f.name,
-    password: process.env[facultyEnvKey(f.code)] ?? "",
-  }));
-
-  const demoApprover = {
-    username: APPROVER.username,
-    password: process.env.APPROVER_PASSWORD ?? "",
-  };
 
   return (
     <div className="login-shell">
@@ -83,7 +71,7 @@ export default function LoginPage() {
 
       {/* ── RIGHT: Form panel — Client Component ──────────────────── */}
       <main className="login-form-panel">
-        <LoginForm demoFaculties={demoFaculties} demoApprover={demoApprover} />
+        <LoginForm />
       </main>
     </div>
   );

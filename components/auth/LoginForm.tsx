@@ -2,20 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { FACULTIES, APPROVER, SESSION_KEY } from "@/lib/faculties";
+import { FACULTIES, SESSION_KEY } from "@/lib/faculties";
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-export interface DemoFaculty {
-  code: string;
-  name: string;
-  password: string; // passed from server — never bundled to client on its own
-}
-
-export interface LoginFormProps {
-  demoFaculties: DemoFaculty[];
-  demoApprover: { username: string; password: string };
-}
+// ─── Component ────────────────────────────────────────────────────────────────
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -104,13 +93,12 @@ const LABEL_STYLE: React.CSSProperties = { fontSize: 13, fontWeight: 600, color:
 
 type Role = "faculty" | "approver";
 
-export function LoginForm({ demoFaculties, demoApprover }: LoginFormProps) {
+export function LoginForm() {
   const router = useRouter();
   const [role, setRole]           = useState<Role>("faculty");
   const [error, setError]         = useState("");
   const [shaking, setShaking]     = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [demoOpen, setDemoOpen]   = useState(false);
 
   // Faculty form
   const [facultyCode, setFacultyCode]       = useState("");
@@ -256,67 +244,6 @@ export function LoginForm({ demoFaculties, demoApprover }: LoginFormProps) {
         </form>
       )}
 
-      {/* DEV demo accounts box */}
-      <div style={{ marginTop: 24, border: "1px dashed #b9c3cf", borderRadius: 11, overflow: "hidden", background: "#f6f8fb" }}>
-        <button type="button" onClick={() => setDemoOpen((o) => !o)}
-          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", background: "transparent", border: "none", fontFamily: "inherit", fontSize: 12.5, fontWeight: 600, color: "#3a4859", cursor: "pointer", textAlign: "left" }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          บัญชีสำหรับทดสอบ (Static demo)
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 4, background: "#eef4fb", color: "#1a4f8a" }}>DEV</span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ marginLeft: "auto", transition: "transform 0.2s", transform: demoOpen ? "rotate(180deg)" : "none" }}
-          ><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-
-        {demoOpen && (
-          <div style={{ padding: "4px 16px 16px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr>{["ผู้ใช้", "รหัสผ่าน", ""].map((h) => (
-                  <th key={h} style={{ textAlign: "left", fontWeight: 700, color: "#677889", padding: "6px 8px", borderBottom: "1px solid #dde3eb", fontSize: 10.5, letterSpacing: "0.04em", textTransform: "uppercase" }}>{h}</th>
-                ))}</tr>
-              </thead>
-              <tbody>
-                {role === "faculty" ? (
-                  <>
-                    {demoFaculties.slice(0, 4).map((f) => (
-                      <tr key={f.code}>
-                        <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6", color: "#14202e" }}>{f.name}</td>
-                        <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6" }}>
-                          <code style={{ fontFamily: "var(--font-ibm-plex), monospace", background: "white", border: "1px solid #dde3eb", borderRadius: 5, padding: "2px 7px", fontSize: 11.5, color: "#1a4f8a" }}>
-                            {f.password || "—"}
-                          </code>
-                        </td>
-                        <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6", textAlign: "right" }}>
-                          <button type="button" onClick={() => { setFacultyCode(f.code); setFacultyPw(f.password); }}
-                            style={{ border: "none", background: "#eef4fb", color: "#1a4f8a", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}
-                          >กรอกให้</button>
-                        </td>
-                      </tr>
-                    ))}
-                    <tr><td colSpan={3} style={{ padding: "10px 8px 4px", color: "#677889", fontSize: 12 }}>…และคณะอื่นๆ อีก {FACULTIES.length - 4} คณะ</td></tr>
-                  </>
-                ) : (
-                  <tr>
-                    <td style={{ padding: "7px 8px", color: "#14202e" }}>{APPROVER.username}</td>
-                    <td style={{ padding: "7px 8px" }}>
-                      <code style={{ fontFamily: "var(--font-ibm-plex), monospace", background: "white", border: "1px solid #dde3eb", borderRadius: 5, padding: "2px 7px", fontSize: 11.5, color: "#1a4f8a" }}>
-                        {demoApprover.password || "—"}
-                      </code>
-                    </td>
-                    <td style={{ padding: "7px 8px", textAlign: "right" }}>
-                      <button type="button" onClick={() => { setApproverUser(demoApprover.username); setApproverPw(demoApprover.password); }}
-                        style={{ border: "none", background: "#eef4fb", color: "#1a4f8a", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}
-                      >กรอกให้</button>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
