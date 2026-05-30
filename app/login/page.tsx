@@ -1,273 +1,51 @@
-"use client";
+// Server Component — reads passwords from env vars at request time.
+// Passwords are passed as props to LoginForm (Client Component).
+// They are NOT bundled into the client JS bundle.
 
-import { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { FACULTIES, APPROVER, SESSION_KEY } from "@/lib/faculties";
+import { FACULTIES, APPROVER, facultyEnvKey } from "@/lib/faculties";
+import { LoginForm } from "@/components/auth/LoginForm";
 
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-const IconEye = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-    <circle cx="12" cy="12" r="3" />
-  </svg>
-);
-
-const IconEyeOff = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-    <line x1="1" y1="1" x2="23" y2="23" />
-  </svg>
-);
-
-const IconArrow = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="12 5 19 12 12 19" />
-  </svg>
-);
-
-const IconAlert = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
-
-const IconSpinner = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Role = "faculty" | "approver";
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function PasswordInput({
-  id,
-  value,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-}) {
-  const [show, setShow] = useState(false);
-  return (
-    <div style={{ position: "relative" }}>
-      <input
-        id={id}
-        type={show ? "text" : "password"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        disabled={disabled}
-        required
-        style={{
-          border: "1px solid #b9c3cf",
-          borderRadius: 9,
-          padding: "12px 44px 12px 14px",
-          fontSize: 14.5,
-          fontFamily: "inherit",
-          color: "#14202e",
-          background: "white",
-          outline: "none",
-          width: "100%",
-          transition: "border-color 0.15s, box-shadow 0.15s",
-        }}
-        onFocus={(e) => {
-          e.target.style.borderColor = "#1a4f8a";
-          e.target.style.boxShadow = "0 0 0 3px #dbe7f4";
-        }}
-        onBlur={(e) => {
-          e.target.style.borderColor = "#b9c3cf";
-          e.target.style.boxShadow = "none";
-        }}
-      />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        aria-label={show ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
-        style={{
-          position: "absolute",
-          right: 6,
-          bottom: 5,
-          width: 34,
-          height: 34,
-          border: "none",
-          background: "transparent",
-          color: "#677889",
-          cursor: "pointer",
-          borderRadius: 7,
-          display: "grid",
-          placeItems: "center",
-        }}
-      >
-        {show ? <IconEyeOff /> : <IconEye />}
-      </button>
-    </div>
-  );
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
+export const metadata = {
+  title: "เข้าสู่ระบบ · AI-Ready Curriculum · BU",
+};
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [role, setRole] = useState<Role>("faculty");
-  const [error, setError] = useState("");
-  const [shaking, setShaking] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
+  // Read all passwords server-side from env vars
+  const demoFaculties = FACULTIES.map((f) => ({
+    code: f.code,
+    name: f.name,
+    password: process.env[facultyEnvKey(f.code)] ?? "",
+  }));
 
-  // Faculty form state
-  const [facultyCode, setFacultyCode] = useState("");
-  const [facultyPw, setFacultyPw] = useState("");
-  const [facultyRemember, setFacultyRemember] = useState(true);
-
-  // Approver form state
-  const [approverUser, setApproverUser] = useState("");
-  const [approverPw, setApproverPw] = useState("");
-  const [approverRemember, setApproverRemember] = useState(true);
-
-  const showError = useCallback((msg: string) => {
-    setError(msg);
-    setShaking(true);
-    setTimeout(() => setShaking(false), 350);
-  }, []);
-
-  const clearError = () => setError("");
-
-  const switchRole = (r: Role) => {
-    setRole(r);
-    clearError();
-  };
-
-  const saveSession = (
-    session: Record<string, unknown>,
-    remember: boolean
-  ) => {
-    const store = remember ? localStorage : sessionStorage;
-    store.setItem(SESSION_KEY, JSON.stringify({ ...session, ts: Date.now() }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
-
-    if (role === "faculty" && !facultyCode) {
-      showError("กรุณาเลือกคณะของท่าน");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const body =
-        role === "faculty"
-          ? { role, facultyCode, password: facultyPw, remember: facultyRemember }
-          : { role, username: approverUser, password: approverPw, remember: approverRemember };
-
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        showError(data.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
-        return;
-      }
-
-      // Save session and redirect
-      saveSession(
-        { role: data.role, code: data.code, name: data.name },
-        role === "faculty" ? facultyRemember : approverRemember
-      );
-      router.push(data.redirect);
-    } catch {
-      showError("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Shared input style
-  const inputStyle: React.CSSProperties = {
-    border: "1px solid #b9c3cf",
-    borderRadius: 9,
-    padding: "12px 14px",
-    fontSize: 14.5,
-    fontFamily: "inherit",
-    color: "#14202e",
-    background: "white",
-    outline: "none",
-    width: "100%",
-    transition: "border-color 0.15s, box-shadow 0.15s",
-  };
-
-  const labelStyle: React.CSSProperties = {
-    fontSize: 13,
-    fontWeight: 600,
-    color: "#14202e",
+  const demoApprover = {
+    username: APPROVER.username,
+    password: process.env.APPROVER_PASSWORD ?? "",
   };
 
   return (
     <div className="login-shell">
       {/* ── LEFT: Brand panel ─────────────────────────────────────── */}
       <aside className="login-brand">
-        {/* Logo */}
         <div style={{ position: "relative", zIndex: 1 }}>
+          {/* Logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 64 }}>
-            <div
-              style={{
-                width: 52, height: 52, borderRadius: 12,
-                background: "white", color: "#1a4f8a",
-                display: "grid", placeItems: "center",
-                fontWeight: 800, fontSize: 20, letterSpacing: "0.5px",
-                boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-              }}
-            >
+            <div style={{ width: 52, height: 52, borderRadius: 12, background: "white", color: "#1a4f8a", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 20, letterSpacing: "0.5px", boxShadow: "0 6px 18px rgba(0,0,0,0.18)" }}>
               BU
             </div>
             <div>
-              <div style={{ fontSize: 13, letterSpacing: "0.04em", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>
-                มหาวิทยาลัยกรุงเทพ
-              </div>
+              <div style={{ fontSize: 13, letterSpacing: "0.04em", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>มหาวิทยาลัยกรุงเทพ</div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>Bangkok University</div>
             </div>
           </div>
 
           {/* Hero text */}
           <div style={{ position: "relative", zIndex: 1 }}>
-            <span
-              className="inline-flex items-center"
-              style={{
-                gap: 8, padding: "6px 14px", borderRadius: 999,
-                background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)",
-                fontSize: 12, fontWeight: 600, letterSpacing: "0.04em",
-                textTransform: "uppercase", color: "white", marginBottom: 24,
-                display: "inline-flex",
-              }}
-            >
+            <span style={{ gap: 8, padding: "6px 14px", borderRadius: 999, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "white", marginBottom: 24, display: "inline-flex", alignItems: "center" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#c9a44c", flexShrink: 0 }} />
               AI-Ready Curriculum Framework
             </span>
 
-            <h1
-              style={{
-                fontSize: 42, fontWeight: 700, lineHeight: 1.15,
-                margin: "0 0 16px", color: "white",
-              }}
-            >
+            <h1 style={{ fontSize: 42, fontWeight: 700, lineHeight: 1.15, margin: "0 0 16px", color: "white" }}>
               เตรียมหลักสูตร<br />
               ของท่านสู่ <em style={{ color: "#c9a44c", fontStyle: "normal" }}>โลก AI</em>
             </h1>
@@ -280,18 +58,12 @@ export default function LoginPage() {
             {/* Features */}
             <div className="login-brand-feats" style={{ display: "grid", gap: 14, marginTop: 36, maxWidth: 480 }}>
               {[
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>, text: "ยื่นขออนุมัติหลักสูตร AI-Ready แบบ 3 ขั้นตอน" },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>, text: "แมพรายวิชาเข้ากับสมรรถนะตามกรอบ UNESCO และ Industry" },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, text: "ติดตามสถานะคำขอ + แจ้งเตือนภายในระบบ" },
-              ].map(({ icon, text }) => (
+                { text: "ยื่นขออนุมัติหลักสูตร AI-Ready แบบ 3 ขั้นตอน", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
+                { text: "แมพรายวิชาเข้ากับสมรรถนะตามกรอบ UNESCO และ Industry", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+                { text: "ติดตามสถานะคำขอ + แจ้งเตือนภายในระบบ", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+              ].map(({ text, icon }) => (
                 <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 9,
-                    background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)",
-                    display: "grid", placeItems: "center", flexShrink: 0, color: "#c9a44c",
-                  }}>
-                    {icon}
-                  </div>
+                  <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", display: "grid", placeItems: "center", flexShrink: 0, color: "#c9a44c" }}>{icon}</div>
                   {text}
                 </div>
               ))}
@@ -300,13 +72,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            position: "relative", zIndex: 1,
-            fontSize: 12, color: "rgba(255,255,255,0.55)",
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}
-        >
+        <div style={{ position: "relative", zIndex: 1, fontSize: 12, color: "rgba(255,255,255,0.55)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>© 2026 Bangkok University · Office of Academic Affairs</div>
           <div style={{ display: "flex", gap: 12 }}>
             <a href="/" style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none" }}>หน้าแรก</a>
@@ -315,297 +81,9 @@ export default function LoginPage() {
         </div>
       </aside>
 
-      {/* ── RIGHT: Form panel ─────────────────────────────────────── */}
+      {/* ── RIGHT: Form panel — Client Component ──────────────────── */}
       <main className="login-form-panel">
-        <div style={{ width: "100%", maxWidth: 440, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: "#14202e", margin: "0 0 6px" }}>
-            เข้าสู่ระบบ
-          </h2>
-          <p style={{ fontSize: 14, color: "#677889", margin: "0 0 28px", lineHeight: 1.6 }}>
-            เลือกประเภทผู้ใช้ แล้วเข้าสู่ระบบด้วยบัญชีที่สำนักวิชาการกำหนดให้
-          </p>
-
-          {/* Role tabs */}
-          <div
-            style={{
-              display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6,
-              background: "#eef1f6", borderRadius: 11, padding: 5, marginBottom: 26,
-            }}
-          >
-            {([
-              {
-                key: "faculty" as Role,
-                label: "คณะ",
-                icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
-              },
-              {
-                key: "approver" as Role,
-                label: "ผู้อนุมัติ",
-                icon: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>,
-              },
-            ] as { key: Role; label: string; icon: React.ReactNode }[]).map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => switchRole(tab.key)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 9,
-                  padding: "11px 14px", border: "none",
-                  background: role === tab.key ? "white" : "transparent",
-                  borderRadius: 8, fontFamily: "inherit", fontSize: 14, fontWeight: 600,
-                  color: role === tab.key ? "#1a4f8a" : "#677889",
-                  cursor: "pointer", transition: "all 0.16s",
-                  boxShadow: role === tab.key ? "0 1px 4px rgba(20,32,46,0.10)" : "none",
-                }}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Shared error banner */}
-          {error && (
-            <div
-              className={shaking ? "auth-shake" : ""}
-              style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "11px 14px", background: "#fdecec",
-                border: "1px solid #f4d0d0", borderRadius: 9,
-                color: "#b53030", fontSize: 13, fontWeight: 500, marginBottom: 16,
-              }}
-            >
-              <IconAlert />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* ── Faculty form ── */}
-          {role === "faculty" && (
-            <form className="fade-pane" onSubmit={handleSubmit} noValidate>
-              {/* Faculty dropdown */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 16 }}>
-                <label htmlFor="faculty-select" style={labelStyle}>คณะของท่าน</label>
-                <select
-                  id="faculty-select"
-                  value={facultyCode}
-                  onChange={(e) => { setFacultyCode(e.target.value); clearError(); }}
-                  disabled={isLoading}
-                  required
-                  style={{
-                    ...inputStyle,
-                    appearance: "none",
-                    cursor: "pointer",
-                    paddingRight: 40,
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 12px center",
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = "#1a4f8a"; e.target.style.boxShadow = "0 0 0 3px #dbe7f4"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "#b9c3cf"; e.target.style.boxShadow = "none"; }}
-                >
-                  <option value="" disabled>— เลือกคณะ —</option>
-                  {FACULTIES.map((f) => (
-                    <option key={f.code} value={f.code}>{f.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Password */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 4 }}>
-                <label htmlFor="faculty-pw" style={labelStyle}>รหัสผ่าน</label>
-                <PasswordInput
-                  id="faculty-pw"
-                  value={facultyPw}
-                  onChange={(v) => { setFacultyPw(v); clearError(); }}
-                  placeholder="กรอกรหัสผ่านของคณะ"
-                  disabled={isLoading}
-                />
-              </div>
-
-              {/* Remember + forgot */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "4px 0 22px", fontSize: 13 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#3a4859", cursor: "pointer" }}>
-                  <input type="checkbox" checked={facultyRemember} onChange={(e) => setFacultyRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: "#1a4f8a" }} />
-                  จดจำการเข้าสู่ระบบ
-                </label>
-                <a href="#" style={{ color: "#1a4f8a", textDecoration: "none", fontWeight: 600 }}>ลืมรหัสผ่าน?</a>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  padding: "14px 18px", border: "none", borderRadius: 10,
-                  background: isLoading ? "#4a7abd" : "#1a4f8a", color: "white",
-                  fontFamily: "inherit", fontSize: 15, fontWeight: 700,
-                  cursor: isLoading ? "not-allowed" : "pointer", transition: "background 0.16s",
-                }}
-              >
-                {isLoading ? <IconSpinner /> : null}
-                เข้าสู่ระบบยื่นคำขอ
-                {!isLoading && <IconArrow />}
-              </button>
-            </form>
-          )}
-
-          {/* ── Approver form ── */}
-          {role === "approver" && (
-            <form className="fade-pane" onSubmit={handleSubmit} noValidate>
-              {/* Username */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 16 }}>
-                <label htmlFor="approver-user" style={labelStyle}>ชื่อผู้ใช้</label>
-                <input
-                  id="approver-user"
-                  type="text"
-                  value={approverUser}
-                  onChange={(e) => { setApproverUser(e.target.value); clearError(); }}
-                  placeholder="เช่น approver"
-                  disabled={isLoading}
-                  required
-                  style={inputStyle}
-                  onFocus={(e) => { e.target.style.borderColor = "#1a4f8a"; e.target.style.boxShadow = "0 0 0 3px #dbe7f4"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "#b9c3cf"; e.target.style.boxShadow = "none"; }}
-                />
-              </div>
-
-              {/* Password */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 4 }}>
-                <label htmlFor="approver-pw" style={labelStyle}>รหัสผ่าน</label>
-                <PasswordInput
-                  id="approver-pw"
-                  value={approverPw}
-                  onChange={(v) => { setApproverPw(v); clearError(); }}
-                  placeholder="กรอกรหัสผ่านผู้อนุมัติ"
-                  disabled={isLoading}
-                />
-              </div>
-
-              {/* Remember + forgot */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "4px 0 22px", fontSize: 13 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#3a4859", cursor: "pointer" }}>
-                  <input type="checkbox" checked={approverRemember} onChange={(e) => setApproverRemember(e.target.checked)} style={{ width: 16, height: 16, accentColor: "#1a4f8a" }} />
-                  จดจำการเข้าสู่ระบบ
-                </label>
-                <a href="#" style={{ color: "#1a4f8a", textDecoration: "none", fontWeight: 600 }}>ลืมรหัสผ่าน?</a>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-                  padding: "14px 18px", border: "none", borderRadius: 10,
-                  background: isLoading ? "#b87a2e" : "#a16216", color: "white",
-                  fontFamily: "inherit", fontSize: 15, fontWeight: 700,
-                  cursor: isLoading ? "not-allowed" : "pointer", transition: "background 0.16s",
-                }}
-              >
-                {isLoading ? <IconSpinner /> : null}
-                เข้าสู่ Approver Dashboard
-                {!isLoading && <IconArrow />}
-              </button>
-            </form>
-          )}
-
-          {/* ── Demo accounts box ─────────────────────────────────── */}
-          <div
-            style={{
-              marginTop: 24, border: "1px dashed #b9c3cf", borderRadius: 11,
-              overflow: "hidden", background: "#f6f8fb",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setDemoOpen((o) => !o)}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", gap: 10,
-                padding: "12px 16px", background: "transparent", border: "none",
-                fontFamily: "inherit", fontSize: 12.5, fontWeight: 600,
-                color: "#3a4859", cursor: "pointer", textAlign: "left",
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              บัญชีสำหรับทดสอบ (Static demo)
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", padding: "2px 7px", borderRadius: 4, background: "#eef4fb", color: "#1a4f8a" }}>
-                DEV
-              </span>
-              <svg
-                width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                style={{ marginLeft: "auto", transition: "transform 0.2s", transform: demoOpen ? "rotate(180deg)" : "none" }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-
-            {demoOpen && (
-              <div style={{ padding: "4px 16px 16px" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr>
-                      {["ผู้ใช้", "รหัสผ่าน", ""].map((h) => (
-                        <th key={h} style={{ textAlign: "left", fontWeight: 700, color: "#677889", padding: "6px 8px", borderBottom: "1px solid #dde3eb", fontSize: 10.5, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {role === "faculty" ? (
-                      <>
-                        {FACULTIES.slice(0, 4).map((f) => (
-                          <tr key={f.code}>
-                            <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6", color: "#14202e" }}>{f.name}</td>
-                            <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6" }}>
-                              <code style={{ fontFamily: "var(--font-ibm-plex), monospace", background: "white", border: "1px solid #dde3eb", borderRadius: 5, padding: "2px 7px", fontSize: 11.5, color: "#1a4f8a" }}>
-                                {f.password}
-                              </code>
-                            </td>
-                            <td style={{ padding: "7px 8px", borderBottom: "1px solid #eef1f6", textAlign: "right" }}>
-                              <button
-                                type="button"
-                                onClick={() => { setFacultyCode(f.code); setFacultyPw(f.password); }}
-                                style={{ border: "none", background: "#eef4fb", color: "#1a4f8a", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}
-                              >
-                                กรอกให้
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        <tr>
-                          <td colSpan={3} style={{ padding: "10px 8px 4px", color: "#677889", fontSize: 12 }}>
-                            …และคณะอื่นๆ อีก {FACULTIES.length - 4} คณะ
-                          </td>
-                        </tr>
-                      </>
-                    ) : (
-                      <tr>
-                        <td style={{ padding: "7px 8px", color: "#14202e" }}>{APPROVER.username}</td>
-                        <td style={{ padding: "7px 8px" }}>
-                          <code style={{ fontFamily: "var(--font-ibm-plex), monospace", background: "white", border: "1px solid #dde3eb", borderRadius: 5, padding: "2px 7px", fontSize: 11.5, color: "#1a4f8a" }}>
-                            {APPROVER.password}
-                          </code>
-                        </td>
-                        <td style={{ padding: "7px 8px", textAlign: "right" }}>
-                          <button
-                            type="button"
-                            onClick={() => { setApproverUser(APPROVER.username); setApproverPw(APPROVER.password); }}
-                            style={{ border: "none", background: "#eef4fb", color: "#1a4f8a", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}
-                          >
-                            กรอกให้
-                          </button>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+        <LoginForm demoFaculties={demoFaculties} demoApprover={demoApprover} />
       </main>
     </div>
   );

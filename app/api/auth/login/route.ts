@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FACULTIES, APPROVER } from "@/lib/faculties";
+import { FACULTIES, APPROVER, facultyEnvKey } from "@/lib/faculties";
 import { getSupabaseClient } from "@/lib/supabase";
 
 interface LoginBody {
@@ -36,15 +36,25 @@ export async function POST(req: NextRequest) {
     if (!facultyCode || typeof facultyCode !== "string") {
       return NextResponse.json({ error: "กรุณาเลือกคณะของท่าน" }, { status: 422 });
     }
+
     const faculty = FACULTIES.find((f) => f.code === facultyCode);
     if (!faculty) {
       return NextResponse.json({ error: "ไม่พบข้อมูลคณะ" }, { status: 422 });
     }
-    if (password !== faculty.password) {
+
+    // Read password from env var — never from source code
+    const expectedPw = process.env[facultyEnvKey(faculty.code)];
+    if (!expectedPw) {
+      console.error(`[auth/login] Missing env var: ${facultyEnvKey(faculty.code)}`);
+      return NextResponse.json(
+        { error: "ระบบยังไม่ได้ตั้งค่ารหัสผ่านสำหรับคณะนี้ กรุณาติดต่อผู้ดูแลระบบ" },
+        { status: 503 }
+      );
+    }
+    if (password !== expectedPw) {
       return NextResponse.json({ error: "รหัสผ่านของคณะไม่ถูกต้อง" }, { status: 401 });
     }
 
-    // Log session (best-effort — don't fail the login if Supabase is down)
     try {
       await getSupabaseClient().from("login_sessions").insert({
         role: "faculty",
@@ -55,7 +65,7 @@ export async function POST(req: NextRequest) {
         user_agent: ua,
       });
     } catch (err) {
-      console.error("[/api/auth/login] session log failed:", err);
+      console.error("[auth/login] session log failed:", err);
     }
 
     return NextResponse.json({
@@ -72,7 +82,16 @@ export async function POST(req: NextRequest) {
     if (!username || typeof username !== "string") {
       return NextResponse.json({ error: "กรุณากรอกชื่อผู้ใช้" }, { status: 422 });
     }
-    if (username.trim() !== APPROVER.username || password !== APPROVER.password) {
+
+    const expectedPw = process.env.APPROVER_PASSWORD;
+    if (!expectedPw) {
+      console.error("[auth/login] Missing env var: APPROVER_PASSWORD");
+      return NextResponse.json(
+        { error: "ระบบยังไม่ได้ตั้งค่ารหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ" },
+        { status: 503 }
+      );
+    }
+    if (username.trim() !== APPROVER.username || password !== expectedPw) {
       return NextResponse.json(
         { error: "ชื่อผู้ใช้หรือรหัสผ่านผู้อนุมัติไม่ถูกต้อง" },
         { status: 401 }
@@ -88,7 +107,7 @@ export async function POST(req: NextRequest) {
         user_agent: ua,
       });
     } catch (err) {
-      console.error("[/api/auth/login] session log failed:", err);
+      console.error("[auth/login] session log failed:", err);
     }
 
     return NextResponse.json({
