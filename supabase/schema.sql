@@ -39,14 +39,25 @@ CREATE TABLE IF NOT EXISTS submissions (
   faculty_name     text        NOT NULL,
   status           text        NOT NULL DEFAULT 'draft'
                                CHECK (status IN ('draft','pending','changes','approved')),
-  ref_id           text,                        -- e.g. AI2026-0001
+  ref_id           text,                        -- e.g. AIRC-2026-0001
   version          integer     DEFAULT 0,       -- number of times submitted
   approver_comment text,                        -- feedback from approver
   submitted_at     timestamptz,
   approved_at      timestamptz,
   last_saved       timestamptz DEFAULT now(),
-  created_at       timestamptz DEFAULT now()
+  created_at       timestamptz DEFAULT now(),
+  form_data        jsonb,                       -- Step 1-3 form data
+  layer1_mapping   jsonb,                       -- UNESCO Layer 1 mapping { "0": ["hcm","fnd"], ... }
+  layer1_status    text        DEFAULT 'not_started'
+                               CHECK (layer1_status IN ('not_started','in_progress','submitted'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS submissions_faculty_code_idx ON submissions (faculty_code);
 CREATE INDEX IF NOT EXISTS submissions_status_idx ON submissions (status);
+
+-- Migration: run this if the table already exists
+-- ALTER TABLE submissions
+--   ADD COLUMN IF NOT EXISTS form_data      jsonb,
+--   ADD COLUMN IF NOT EXISTS layer1_mapping jsonb,
+--   ADD COLUMN IF NOT EXISTS layer1_status  text DEFAULT 'not_started'
+--     CHECK (layer1_status IN ('not_started','in_progress','submitted'));

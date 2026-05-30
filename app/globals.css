@@ -982,3 +982,103 @@ body {
   .review-grid { grid-template-columns: 1fr; }
   .review-side { position: static; }
 }
+
+/* ===== Layer 1 mapping table ===== */
+.map-tbl {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+.map-tbl thead th {
+  padding: 10px 12px;
+  background: #f6f8fb;
+  border-bottom: 2px solid #eef1f6;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #3a4859;
+}
+.map-tbl__comp-th {
+  text-align: left;
+  min-width: 280px;
+  max-width: 340px;
+}
+.map-tbl__domain-th {
+  text-align: center;
+  width: 96px;
+}
+.map-tbl__sum-th {
+  text-align: center;
+  width: 52px;
+  color: #677889 !important;
+}
+.map-domain-badge {
+  display: block;
+  margin: 0 auto 4px;
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--db);
+  border: 1px solid var(--dbo);
+  color: var(--dc);
+  font-family: var(--font-ibm-plex), monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.map-domain-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #677889;
+  text-align: center;
+  line-height: 1.3;
+}
+.map-tbl__row {
+  border-bottom: 1px solid #eef1f6;
+  transition: background 0.15s;
+}
+.map-tbl__row:hover { background: #fafbfd; }
+.map-tbl__row.is-done { background: #fafffe; }
+.map-tbl__comp-td {
+  padding: 12px 14px;
+  vertical-align: top;
+}
+.map-tbl__cell-td {
+  padding: 8px 4px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+}
+.map-tbl__cell-td:hover .map-checkbox:not(.is-on):not(:disabled) {
+  border-color: var(--dc);
+  background: var(--db);
+}
+.map-tbl__sum-td {
+  text-align: center;
+  padding: 8px 6px;
+  vertical-align: middle;
+}
+.map-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 2px solid #dde3eb;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  color: var(--dc);
+  outline: none;
+}
+.map-checkbox.is-on {
+  background: var(--db);
+  border-color: var(--dc);
+}
+.map-checkbox:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
