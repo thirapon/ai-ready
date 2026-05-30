@@ -9,6 +9,8 @@ import { Topbar } from "@/components/app/Topbar";
 
 type Status = "none" | "draft" | "pending" | "changes" | "approved";
 
+type Layer1Status = "not_started" | "in_progress" | "submitted" | null;
+
 interface Submission {
   status: Status;
   ref_id: string | null;
@@ -16,6 +18,7 @@ interface Submission {
   approver_comment: string | null;
   submitted_at: string | null;
   last_saved: string | null;
+  layer1_status: Layer1Status;
 }
 
 interface Session {
@@ -106,9 +109,11 @@ export default function SubmitPage() {
   const approved = curStatus === "approved";
 
   // Journey states
+  const l1Status: Layer1Status = submission?.layer1_status ?? null;
+  const l1Done = l1Status === "submitted";
   const approvalState = approved ? "done" : "active";
-  const l1State = !approved ? "locked" : "active";
-  const l2State = !approved ? "locked" : "locked"; // unlocks after L1 approved
+  const l1State = !approved ? "locked" : l1Done ? "done" : "active";
+  const l2State = l1Done ? "active" : "locked";
 
   // Action label for approval card
   const approvalBtnLabel =
@@ -228,10 +233,10 @@ export default function SubmitPage() {
           </div>
 
           {/* ── Layer 1 card ── */}
-          <LayerCard which={1} unlocked={approved} />
+          <LayerCard which={1} unlocked={approved} layer1Status={l1Status} />
 
           {/* ── Layer 2 card ── */}
-          <LayerCard which={2} unlocked={false} />
+          <LayerCard which={2} unlocked={l1Done} />
         </div>
 
         <div style={{ textAlign: "center", fontSize: 12, color: "#8b99a8", marginTop: 24 }}>
@@ -244,11 +249,24 @@ export default function SubmitPage() {
 
 // ─── Layer card ───────────────────────────────────────────────────────────────
 
-function LayerCard({ which, unlocked }: { which: 1 | 2; unlocked: boolean }) {
+const LAYER_STATUS_CFG = {
+  not_started: { label: "ยังไม่เริ่ม",      color: "#677889", bg: "#eef1f5", border: "#dde3eb" },
+  in_progress:  { label: "กำลังดำเนินการ", color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
+  submitted:    { label: "เสร็จสมบูรณ์",   color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
+};
+
+function LayerCard({ which, unlocked, layer1Status }: {
+  which: 1 | 2;
+  unlocked: boolean;
+  layer1Status?: Layer1Status;
+}) {
   const isL1 = which === 1;
-  const title   = isL1 ? "Layer 1 · UNESCO"              : "Layer 2 · School & Industry";
-  const eyebrow = isL1 ? "แมพสมรรถนะมาตรฐานสากล"        : "แมพสมรรถนะเฉพาะคณะ + อุตสาหกรรม";
-  const href    = isL1 ? "/mapping/layer1"               : "/mapping/layer2";
+  const title   = isL1 ? "Layer 1 · UNESCO"           : "Layer 2 · School & Industry";
+  const eyebrow = isL1 ? "แมพสมรรถนะมาตรฐานสากล"     : "แมพสมรรถนะเฉพาะคณะ + อุตสาหกรรม";
+  const href    = isL1 ? "/mapping/layer1"            : "/mapping/layer2";
+  const lockNote = isL1
+    ? "จะปลดล็อกเมื่อหลักสูตรได้รับการอนุมัติ AI-Ready"
+    : "จะปลดล็อกเมื่อส่งการแมพ Layer 1 เสร็จสมบูรณ์";
 
   if (!unlocked) {
     return (
@@ -271,7 +289,7 @@ function LayerCard({ which, unlocked }: { which: 1 | 2; unlocked: boolean }) {
             <rect x="3" y="11" width="18" height="11" rx="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          จะปลดล็อกเมื่อหลักสูตรได้รับการอนุมัติ AI-Ready
+          {lockNote}
         </div>
         <div className="hcard__foot">
           <a href={href} className="hcard__lockbtn">
@@ -285,6 +303,11 @@ function LayerCard({ which, unlocked }: { which: 1 | 2; unlocked: boolean }) {
       </div>
     );
   }
+
+  const st = (isL1 ? (layer1Status ?? "not_started") : "not_started") as keyof typeof LAYER_STATUS_CFG;
+  const stCfg = LAYER_STATUS_CFG[st];
+  const isDone = st === "submitted";
+  const btnLabel = isDone ? "ดูการแมพ" : st === "in_progress" ? "ทำต่อ" : "เริ่มแมพ";
 
   return (
     <div className={`hcard hcard--l${which}`}>
@@ -309,10 +332,16 @@ function LayerCard({ which, unlocked }: { which: 1 | 2; unlocked: boolean }) {
           <div className="hcard__eyebrow">{eyebrow}</div>
           <h3 className="hcard__title">{title}</h3>
         </div>
+        {isL1 && (
+          <span className="hpill" style={{ background: stCfg.bg, color: stCfg.color, borderColor: stCfg.border, flexShrink: 0 }}>
+            <span className="hpill__dot" />
+            {stCfg.label}
+          </span>
+        )}
       </div>
       <div className="hcard__foot">
-        <a href={href} className="hcard__btn">
-          เริ่มแมพ <ArrowIcon />
+        <a href={href} className={`hcard__btn${isDone ? " hcard__btn--ghost" : ""}`}>
+          {btnLabel} <ArrowIcon />
         </a>
       </div>
     </div>
