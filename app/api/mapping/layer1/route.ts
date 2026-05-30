@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
-  const facultyCode = req.nextUrl.searchParams.get("facultyCode");
-  if (!facultyCode) {
-    return NextResponse.json({ error: "facultyCode is required" }, { status: 400 });
+  const id = req.nextUrl.searchParams.get("id");
+  if (!id) {
+    return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
 
   const { data, error } = await getSupabaseClient()
     .from("submissions")
     .select("*")
-    .eq("faculty_code", facultyCode)
+    .eq("id", id)
     .maybeSingle();
 
   if (error) {
@@ -45,10 +45,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  const { facultyCode, mapping, action = "draft" } = body;
+  const { id, mapping, action = "draft" } = body as { id?: string; mapping?: Record<string, string[]>; action?: "draft" | "submit" };
 
-  if (!facultyCode) {
-    return NextResponse.json({ error: "facultyCode is required." }, { status: 422 });
+  if (!id) {
+    return NextResponse.json({ error: "id is required." }, { status: 422 });
   }
 
   const { error } = await getSupabaseClient()
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       layer1_mapping: mapping ?? {},
       layer1_status: action === "submit" ? "submitted" : "in_progress",
     })
-    .eq("faculty_code", facultyCode);
+    .eq("id", id);
 
   if (error) {
     console.error("[/api/mapping/layer1 POST]", error.message);

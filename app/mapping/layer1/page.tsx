@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import { UNESCO_DOMAINS } from "@/lib/unesco";
 import type { Layer1Mapping } from "@/lib/unesco";
@@ -63,9 +63,12 @@ function mappedCount(mapping: Layer1Mapping, totalComps: number): number {
   return Array.from({ length: totalComps }, (_, i) => (mapping[String(i)] ?? []).length > 0).filter(Boolean).length;
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function Layer1MappingPage() {
-  const router = useRouter();
+// ─── Inner (uses useSearchParams) ────────────────────────────────────────────
+function Layer1MappingInner() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const submissionId = searchParams.get("id");
+
   const [session, setSession]     = useState<Session | null>(null);
   const [pageData, setPageData]   = useState<PageData | null>(null);
   const [mapping, setMapping]     = useState<Layer1Mapping>({});
@@ -81,12 +84,13 @@ export default function Layer1MappingPage() {
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     if (!raw) { router.replace("/login"); return; }
+    if (!submissionId) { router.replace("/submit"); return; }
     try {
       const sess: Session = JSON.parse(raw);
       if (sess.role !== "faculty") { router.replace("/login"); return; }
       setSession(sess);
 
-      fetch(`/api/mapping/layer1?facultyCode=${encodeURIComponent(sess.code)}`)
+      fetch(`/api/mapping/layer1?id=${encodeURIComponent(submissionId)}`)
         .then((r) => r.ok ? r.json() : Promise.reject(r.status))
         .then((d: PageData) => {
           if (d.submissionStatus !== "approved") {
@@ -114,7 +118,7 @@ export default function Layer1MappingPage() {
     } catch {
       router.replace("/login");
     }
-  }, [router]);
+  }, [router, submissionId]);
 
   // Auto-save draft to localStorage when mapping changes
   useEffect(() => {
@@ -144,7 +148,7 @@ export default function Layer1MappingPage() {
       const res = await fetch("/api/mapping/layer1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facultyCode: session.code, mapping, action: "draft" }),
+        body: JSON.stringify({ id: submissionId, mapping, action: "draft" }),
       });
       if (res.ok) setSaveMsg("บันทึกแล้ว ✓");
     } catch { /* ignore */ }
@@ -158,7 +162,7 @@ export default function Layer1MappingPage() {
       const res = await fetch("/api/mapping/layer1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facultyCode: session.code, mapping, action: "submit" }),
+        body: JSON.stringify({ id: submissionId, mapping, action: "submit" }),
       });
       if (res.ok) {
         localStorage.removeItem(DRAFT_KEY);
@@ -461,5 +465,18 @@ export default function Layer1MappingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// ─── Page wrapper with Suspense (required for useSearchParams) ────────────────
+export default function Layer1MappingPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: "100vh", background: "#f6f8fb", display: "grid", placeItems: "center" }}>
+        <div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div>
+      </div>
+    }>
+      <Layer1MappingInner />
+    </Suspense>
   );
 }
