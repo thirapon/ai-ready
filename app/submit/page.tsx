@@ -83,11 +83,11 @@ export default function SubmitPage() {
       if (sess.role !== "faculty") { router.replace("/login"); return; }
       setSession(sess);
 
-      // Fetch submission status
+      // Fetch submission status — treat any error as "no submission yet"
       fetch(`/api/submissions?facultyCode=${encodeURIComponent(sess.code)}`)
-        .then((r) => r.json())
-        .then((d) => setSubmission(d.submission))
-        .catch(() => {})
+        .then((r) => (r.ok ? r.json() : { submission: null }))
+        .then((d) => setSubmission(d.submission ?? null))
+        .catch(() => setSubmission(null))
         .finally(() => setLoading(false));
     } catch {
       router.replace("/login");
