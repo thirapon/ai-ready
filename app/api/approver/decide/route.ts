@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { sendDecisionNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -28,6 +29,12 @@ export async function POST(req: NextRequest) {
   const statusMap = { approve: "approved", changes: "changes", reject: "rejected" } as const;
   const newStatus = statusMap[action];
 
+  const { data: existing } = await getSupabaseClient()
+    .from("submissions")
+    .select("ref_id, faculty_name, program_name, form_data")
+    .eq("id", submissionId)
+    .maybeSingle();
+
   const { error } = await getSupabaseClient()
     .from("submissions")
     .update({
@@ -41,6 +48,21 @@ export async function POST(req: NextRequest) {
   if (error) {
     console.error("[/api/approver/decide]", error.message);
     return NextResponse.json({ error: "Failed to save decision." }, { status: 500 });
+  }
+
+  if (existing) {
+    const fd = (existing.form_data ?? {}) as Record<string, string>;
+    if (fd.email) {
+      sendDecisionNotification({
+        refId: existing.ref_id ?? "-",
+        facultyName: existing.faculty_name ?? "-",
+        programName: existing.program_name ?? "-",
+        action,
+        comment: comment?.trim(),
+        recipientEmail: fd.email,
+        recipientName: fd.owner ?? fd.email,
+      }).catch((e) => console.error("[email] sendDecisionNotification:", e));
+    }
   }
 
   return NextResponse.json({ success: true, status: newStatus });

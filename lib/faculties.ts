@@ -25,6 +25,8 @@ export const FACULTIES: Faculty[] = [
   { code: "fineart",  name: "คณะศิลปกรรมศาสตร์" },
   { code: "dmca",     name: "คณะดิจิทัลมีเดียและศิลปะภาพยนตร์" },
   { code: "busem",    name: "คณะการสร้างเจ้าของธุรกิจและการบริหารกิจการ" },
+  { code: "intl",     name: "วิทยาลัยนานาชาติ" },
+  { code: "intlcn",   name: "วิทยาลัยนานาชาติจีน" },
 ];
 
 export const APPROVER = {

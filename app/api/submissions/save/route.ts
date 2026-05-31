@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { sendSubmissionNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -64,6 +65,17 @@ export async function POST(req: NextRequest) {
       console.error("[/api/submissions/save update]", error.message);
       return NextResponse.json({ error: "Failed to save." }, { status: 500 });
     }
+    if (isSubmit && data) {
+      const fd = (formData ?? {}) as Record<string, string>;
+      sendSubmissionNotification({
+        refId: (data as { ref_id?: string }).ref_id ?? "-",
+        facultyName: facultyName,
+        programName: programName,
+        ownerName: fd.owner ?? "-",
+        ownerEmail: fd.email ?? "-",
+      }).catch((e) => console.error("[email] sendSubmissionNotification:", e));
+    }
+
     return NextResponse.json({ success: true, submission: data }, { status: 200 });
 
   } else {
@@ -96,6 +108,17 @@ export async function POST(req: NextRequest) {
       console.error("[/api/submissions/save insert]", error.message);
       return NextResponse.json({ error: "Failed to save." }, { status: 500 });
     }
+    if (isSubmit && data) {
+      const fd = (formData ?? {}) as Record<string, string>;
+      sendSubmissionNotification({
+        refId: (data as { ref_id?: string }).ref_id ?? "-",
+        facultyName: facultyName,
+        programName: programName,
+        ownerName: fd.owner ?? "-",
+        ownerEmail: fd.email ?? "-",
+      }).catch((e) => console.error("[email] sendSubmissionNotification:", e));
+    }
+
     return NextResponse.json({ success: true, submission: data }, { status: 200 });
   }
 }

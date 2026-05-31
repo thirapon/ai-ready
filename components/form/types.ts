@@ -40,8 +40,8 @@ export const INITIAL_DATA: FormData = {
 };
 
 export const FACULTY_PROGRAMS: Record<string, string[]> = {
-  บัญชี: ["การบัญชี"],
-  บริหารธุรกิจ: ["การตลาด","การตลาดดิจิทัล","การจัดการ","การเงิน","การจัดการธุรกิจระหว่างประเทศ","การจัดการโลจิสติกส์และโซ่อุปทาน"],
+  การบัญชี: ["การบัญชี"],
+  บริหารธุรกิจ: ["การตลาด","การตลาดดิจิทัล","การจัดการ","การเงิน","การจัดการธุรกิจระหว่างประเทศ","การจัดการธุรกิจระหว่างประเทศ (มุ่งเน้นจีน)","การจัดการโลจิสติกส์และโซ่อุปทาน"],
   นิเทศศาสตร์: ["ศิลปะการแสดง","วิทยุกระจายเสียง วิทยุโทรทัศน์ และการผลิตสื่อสตรีมมิ่ง","การผลิตเนื้อหาสร้างสรรค์และประสบการณ์ดิจิทัล","การผลิตอีเว้นท์และการจัดการนิทรรศการและการประชุม","การสื่อสารและสื่อใหม่"],
   นิติศาสตร์: ["นิติศาสตร์"],
   มนุษยศาสตร์และการจัดการการท่องเที่ยว: ["ภาษาอังกฤษ","การจัดการการท่องเที่ยวและเรือสำราญ","การจัดการการโรงแรม","ศิลปะการประกอบอาหารและการจัดการการบริการธุรกิจร้านอาหาร","การจัดการธุรกิจสายการบิน"],
@@ -52,6 +52,8 @@ export const FACULTY_PROGRAMS: Record<string, string[]> = {
   สถาปัตยกรรมศาสตร์: ["สถาปัตยกรรม","สถาปัตยกรรมภายใน"],
   การสร้างเจ้าของธุรกิจและการบริหารกิจการ: ["การเป็นเจ้าของธุรกิจ","AI Engineering and Entrepreneurship (International Program)","Entrepreneurship (International Program)"],
   ดิจิทัลมีเดียและศิลปะภาพยนตร์: ["ภาพยนตร์","สื่อดิจิทัล","Film, Series and Global Content Production and Business (International Program)"],
+  วิทยาลัยนานาชาติ: ["Business English (International Program)","Creative Communication Design (International Program)","Marketing (International Program)","International Tourism and Hospitality Management (International Program)","Culinary Arts and Design (International Program)","Innovative Media Production (International Program)","Media and Communication (International Program)","Computer Science (International Program)","Business Administration (International Program)"],
+  วิทยาลัยนานาชาติจีน: ["ภาษาจีนธุรกิจ","Business Administration (Bilingual Program)"],
 };
 
 export const SECTORS = [
