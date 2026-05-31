@@ -24,7 +24,6 @@ const TYPE_CFG = {
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const SaveIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
-const SendIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
 const SpinIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
 const PlusIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const TrashIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>;
@@ -308,11 +307,8 @@ function Layer1MappingInner() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [saveMsg, setSaveMsg]   = useState("บันทึกอัตโนมัติแล้ว");
-  const [submitted, setSubmitted] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
 
   // Panel state
   const [panelOpen, setPanelOpen]   = useState(false);
@@ -334,7 +330,6 @@ function Layer1MappingInner() {
         .then((d: Submission) => {
           if (d.submissionStatus !== "approved") { router.replace("/submit"); return; }
           setSub(d);
-          setSubmitted(d.layer1Status === "submitted");
           const saved = Array.isArray(d.layer1Mapping) && d.layer1Mapping.length > 0
             ? d.layer1Mapping as MappingRow[] : null;
           if (saved) { setRows(saved); }
@@ -354,15 +349,14 @@ function Layer1MappingInner() {
   }, [router, submissionId, draftKey]);
 
   useEffect(() => {
-    if (!session || submitted || !dataLoaded) return;
+    if (!session || !dataLoaded) return;
     setSaveMsg("กำลังบันทึก...");
     localStorage.setItem(draftKey, JSON.stringify(rows));
     const t = setTimeout(() => setSaveMsg("บันทึกอัตโนมัติแล้ว"), 600);
     return () => clearTimeout(t);
-  }, [rows, session, submitted, draftKey, dataLoaded]);
+  }, [rows, session, draftKey, dataLoaded]);
 
   const openNew = () => {
-    if (submitted) return;
     setPanelRow(newRow());
     setEditIdx(null);
     setPanelOpen(true);
@@ -385,7 +379,7 @@ function Layer1MappingInner() {
     setRows((p) => p.filter((_, i) => i !== idx));
   };
 
-  const saveDraft = async () => {
+  const saveMapping = async () => {
     if (!session || saving) return;
     setSaving(true);
     try {
@@ -394,21 +388,9 @@ function Layer1MappingInner() {
         body: JSON.stringify({ id: submissionId, mapping: rows, action: "draft" }),
       });
       if (res.ok) setSaveMsg("บันทึกแล้ว ✓");
-    } catch { /* ignore */ } finally { setSaving(false); }
-  };
-
-  const handleSubmit = async () => {
-    if (!session || submitting) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/mapping/layer1", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: submissionId, mapping: rows, action: "submit" }),
-      });
-      if (res.ok) { localStorage.removeItem(draftKey); setSubmitted(true); setShowConfirm(false); }
       else alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
     } catch { alert("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่"); }
-    finally { setSubmitting(false); }
+    finally { setSaving(false); }
   };
 
   const handleLogout = () => {
@@ -446,7 +428,7 @@ function Layer1MappingInner() {
           <div className="app-topbar__sub">มหาวิทยาลัยกรุงเทพ · Office of Academic Affairs</div>
         </div>
         <div style={{ flex: 1 }} />
-        {!submitted && <span className="savetag"><span className="dot" />{saveMsg}</span>}
+        <span className="savetag"><span className="dot" />{saveMsg}</span>
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
@@ -480,17 +462,6 @@ function Layer1MappingInner() {
             <a href={`/mapping/layer2?id=${submissionId}`} style={{ padding: "6px 14px", borderRadius: 7, color: "#677889", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>L2 · School & Industry</a>
           </div>
         </div>
-
-        {/* Submitted banner */}
-        {submitted && (
-          <div style={{ background: "#e6f4ec", border: "1px solid #b5dbc5", borderRadius: 10, padding: "12px 18px", display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#137a4a", color: "white", display: "grid", placeItems: "center", flexShrink: 0 }}><CheckIcon /></div>
-            <div>
-              <div style={{ fontWeight: 700, color: "#137a4a", fontSize: 14 }}>ส่งการแมพ Layer 1 เรียบร้อยแล้ว</div>
-              <div style={{ fontSize: 12.5, color: "#3a4859" }}>ข้อมูลถูกบันทึกและล็อกแล้ว ไม่สามารถแก้ไขได้</div>
-            </div>
-          </div>
-        )}
 
         {/* MapHeader */}
         <div style={{ background: "linear-gradient(135deg, #1a4f8a 0%, #133a66 100%)", borderRadius: 14, padding: "26px 30px", marginBottom: 18, color: "white", position: "relative", overflow: "hidden" }}>
@@ -540,11 +511,9 @@ function Layer1MappingInner() {
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>รายการแมพ</h3>
               <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} รายวิชา</span>
             </div>
-            {!submitted && (
-              <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                <PlusIcon /> เพิ่มรายวิชา
-              </button>
-            )}
+            <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <PlusIcon /> เพิ่มรายวิชา
+            </button>
           </div>
 
           {rows.length === 0 ? (
@@ -554,11 +523,9 @@ function Layer1MappingInner() {
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 6 }}>ยังไม่มีรายวิชา</div>
               <div style={{ fontSize: 13, color: "#677889", marginBottom: 16 }}>กดปุ่มด้านบนเพื่อเพิ่มรายวิชาแรก</div>
-              {!submitted && (
-                <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", gap: 6 }}>
-                  <PlusIcon /> เพิ่มรายวิชาแรก
-                </button>
-              )}
+              <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", gap: 6 }}>
+                <PlusIcon /> เพิ่มรายวิชาแรก
+              </button>
             </div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -581,10 +548,10 @@ function Layer1MappingInner() {
                   return (
                     <tr
                       key={row.id}
-                      style={{ borderBottom: "1px solid #f4f6fa", cursor: submitted ? "default" : "pointer", transition: "background 0.1s" }}
-                      onMouseEnter={(e) => { if (!submitted) (e.currentTarget as HTMLTableRowElement).style.background = "#fafbfd"; }}
+                      style={{ borderBottom: "1px solid #f4f6fa", cursor: "pointer", transition: "background 0.1s" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#fafbfd"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
-                      onClick={() => !submitted && openEdit(idx)}
+                      onClick={() => openEdit(idx)}
                     >
                       <td style={{ padding: "12px 12px", color: "#8b99a8", fontWeight: 700, fontSize: 12, fontFamily: "var(--font-ibm-plex), monospace" }}>
                         {String(idx + 1).padStart(2, "0")}
@@ -632,16 +599,12 @@ function Layer1MappingInner() {
                       </td>
                       <td style={{ padding: "12px 12px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          {!submitted && (
-                            <>
-                              <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="แก้ไข">
-                                <EditIcon />
-                              </button>
-                              <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="ลบ">
-                                <TrashIcon />
-                              </button>
-                            </>
-                          )}
+                          <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="แก้ไข">
+                            <EditIcon />
+                          </button>
+                          <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="ลบ">
+                            <TrashIcon />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -652,29 +615,17 @@ function Layer1MappingInner() {
           )}
         </div>
 
-        {submitted && (
-          <div style={{ marginTop: 20, display: "flex", justifyContent: "center" }}>
-            <a href="/submit" className="btn btn--primary" style={{ textDecoration: "none", display: "inline-flex" }}>กลับหน้าหลัก</a>
-          </div>
-        )}
       </main>
 
       {/* ── Sticky footer ── */}
-      {!submitted && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #dde3eb", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 40 }}>
-          <div style={{ fontSize: 13, color: "#677889" }}>
-            <b style={{ color: "#14202e" }}>{rows.length}</b> รายวิชา · <b style={{ color: "#137a4a" }}>{applyCount}</b> Apply · <b style={{ color: "#6d28d9" }}>{createCount}</b> Create
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button className="btn" onClick={saveDraft} disabled={saving}>
-              {saving ? <SpinIcon /> : <SaveIcon />} บันทึกฉบับร่าง
-            </button>
-            <button className="btn btn--primary" disabled={rows.length === 0 || submitting} onClick={() => setShowConfirm(true)}>
-              {submitting ? <SpinIcon /> : <SendIcon />} ส่งการแมพ Layer 1
-            </button>
-          </div>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #dde3eb", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 40 }}>
+        <div style={{ fontSize: 13, color: "#677889" }}>
+          <b style={{ color: "#14202e" }}>{rows.length}</b> รายวิชา · <b style={{ color: "#137a4a" }}>{applyCount}</b> Apply · <b style={{ color: "#6d28d9" }}>{createCount}</b> Create
         </div>
-      )}
+        <button className="btn btn--primary" onClick={saveMapping} disabled={saving}>
+          {saving ? <SpinIcon /> : <SaveIcon />} บันทึกการแมพ
+        </button>
+      </div>
 
       {/* ── Slide-over panel ── */}
       <RowPanel
@@ -684,25 +635,6 @@ function Layer1MappingInner() {
         onClose={closePanel}
         onSave={savePanel}
       />
-
-      {/* ── Confirm modal ── */}
-      {showConfirm && (
-        <div className="modal-bg" onClick={() => setShowConfirm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal__icon" style={{ background: "#e6f4ec", color: "#137a4a" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-            </div>
-            <h3 className="modal__title">ยืนยันส่งการแมพ Layer 1?</h3>
-            <p className="modal__text">แมพ <b style={{ color: "#14202e" }}>{rows.length} รายวิชา</b> ครบแล้ว หลังยืนยันจะ<b style={{ color: "#14202e" }}>ไม่สามารถแก้ไข</b>ได้</p>
-            <div className="modal__foot">
-              <button className="btn" onClick={() => setShowConfirm(false)}>ยกเลิก</button>
-              <button className="btn btn--primary" disabled={submitting} onClick={handleSubmit}>
-                {submitting ? <SpinIcon /> : <SendIcon />} ยืนยันส่ง
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
