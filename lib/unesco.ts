@@ -1,76 +1,115 @@
-export interface UnescoDomain {
+// ─── UNESCO AI Competency Framework (4 dimensions) ───────────────────────────
+
+export interface UnescoDimension {
   id: string;
-  code: string;
   label: string;
   labelTH: string;
   color: string;
   bg: string;
   border: string;
-  desc: string;
+  competencies: { id: string; label: string; labelTH: string; level: "apply" | "create" }[];
 }
 
-export const UNESCO_DOMAINS: UnescoDomain[] = [
+export const UNESCO_DIMENSIONS: UnescoDimension[] = [
   {
-    id: "hcm",
-    code: "HCM",
-    label: "Human-Centred Mindset",
-    labelTH: "มุมมองที่เน้นมนุษย์",
+    id: "human",
+    label: "Human-centred Mindset",
+    labelTH: "Human-centred Mindset",
     color: "#1a4f8a",
     bg: "#eef4fb",
     border: "#dbe7f4",
-    desc: "ความคิดสร้างสรรค์ ความร่วมมือ และบริบทสังคม-วัฒนธรรม",
+    competencies: [
+      { id: "apply_human",  label: "Human accountability",      labelTH: "Apply: Human accountability",      level: "apply"  },
+      { id: "create_human", label: "Citizenship in the era of AI", labelTH: "Create: Citizenship in the era of AI", level: "create" },
+    ],
   },
   {
-    id: "eth",
-    code: "ETH",
+    id: "ethics",
     label: "Ethics of AI",
-    labelTH: "จริยธรรม AI",
+    labelTH: "Ethics of AI",
     color: "#b53030",
     bg: "#fdecec",
     border: "#f4d0d0",
-    desc: "ความเป็นส่วนตัว อคติ ความยุติธรรม และความโปร่งใส",
+    competencies: [
+      { id: "apply_ethics",  label: "Safe and responsible use", labelTH: "Apply: Safe and responsible use", level: "apply"  },
+      { id: "create_ethics", label: "Ethics by design",         labelTH: "Create: Ethics by design",        level: "create" },
+    ],
   },
   {
-    id: "fnd",
-    code: "FND",
-    label: "AI Foundations",
-    labelTH: "พื้นฐาน AI",
-    color: "#137a4a",
-    bg: "#e6f4ec",
-    border: "#b5dbc5",
-    desc: "แนวคิดพื้นฐาน ข้อมูล อัลกอริทึม และ Machine Learning",
-  },
-  {
-    id: "tec",
-    code: "TEC",
+    id: "techniques",
     label: "AI Techniques & Applications",
-    labelTH: "เทคนิค & ประยุกต์ AI",
+    labelTH: "AI Techniques & Applications",
     color: "#6d28d9",
     bg: "#f5f3ff",
     border: "#ddd6fe",
-    desc: "ML, Deep Learning, NLP, Computer Vision และเครื่องมือ AI",
+    competencies: [
+      { id: "apply_techniques",  label: "Application skills",  labelTH: "Apply: Application skills",  level: "apply"  },
+      { id: "create_techniques", label: "Creating AI tools",   labelTH: "Create: Creating AI tools",  level: "create" },
+    ],
   },
   {
-    id: "des",
-    code: "DES",
+    id: "design",
     label: "AI System Design",
-    labelTH: "ออกแบบระบบ AI",
+    labelTH: "AI System Design",
     color: "#a86a14",
     bg: "#fcf3e1",
     border: "#f0dca6",
-    desc: "ระบุปัญหา เตรียมข้อมูล เลือก model ทดสอบ และ deploy",
-  },
-  {
-    id: "soc",
-    code: "SOC",
-    label: "AI & the World",
-    labelTH: "AI กับสังคม",
-    color: "#0f766e",
-    bg: "#f0fdfa",
-    border: "#99f6e4",
-    desc: "ผลกระทบต่อสังคม ตลาดแรงงาน และการพัฒนาอย่างยั่งยืน",
+    competencies: [
+      { id: "apply_design",  label: "Architecture design",         labelTH: "Apply: Architecture design",         level: "apply"  },
+      { id: "create_design", label: "Iteration and feedback loops", labelTH: "Create: Iteration and feedback loops", level: "create" },
+    ],
   },
 ];
 
-// mapping[competencyIndex] = array of domain ids
-export type Layer1Mapping = Record<string, string[]>;
+export function getDimension(id: string) {
+  return UNESCO_DIMENSIONS.find((d) => d.id === id);
+}
+export function getCompetency(compId: string) {
+  for (const d of UNESCO_DIMENSIONS) {
+    const c = d.competencies.find((c) => c.id === compId);
+    if (c) return { ...c, dimension: d };
+  }
+  return null;
+}
+
+// ─── Mapping row ──────────────────────────────────────────────────────────────
+export interface MappingRow {
+  id: string;
+  courseCode: string;
+  courseName: string;
+  dimension: string;
+  competency: string;
+  year: string;
+  embedMethod: string;
+  aiTool: string;
+  toolType: "essential" | "specialist" | "competitive" | "";
+  aiUsage: string;
+  freeZone: boolean;
+  consulted: boolean;
+  assisted: boolean;
+  generated: boolean;
+  notes: string;
+}
+
+export function newRow(): MappingRow {
+  return {
+    id: Math.random().toString(36).slice(2),
+    courseCode: "",
+    courseName: "",
+    dimension: "",
+    competency: "",
+    year: "",
+    embedMethod: "",
+    aiTool: "",
+    toolType: "",
+    aiUsage: "",
+    freeZone: false,
+    consulted: false,
+    assisted: false,
+    generated: false,
+    notes: "",
+  };
+}
+
+// legacy type kept for API compatibility
+export type Layer1Mapping = MappingRow[];
