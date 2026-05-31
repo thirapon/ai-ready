@@ -40,13 +40,6 @@ function computeLayer2(mapping: Layer2Row[] | null): LayerStats {
   return { courses: mapping.length, mapped };
 }
 function isDone(layer: LayerStats) { return layer.courses > 0 && layer.mapped >= layer.courses; }
-function fmtDate(s: string | null) {
-  if (!s) return "—";
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return "—";
-  const m = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
-  return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear() + 543}`;
-}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function MapStatusBadge({ done, empty }: { done: boolean; empty: boolean }) {
@@ -67,7 +60,7 @@ function MapStatusBadge({ done, empty }: { done: boolean; empty: boolean }) {
   );
 }
 
-function LayerCell({ layer, label, submissionId, layerNo }: { layer: LayerStats; label: string; submissionId: string; layerNo: 1 | 2 }) {
+function LayerCell({ layer, submissionId, layerNo }: { layer: LayerStats; submissionId: string; layerNo: 1 | 2 }) {
   const router = useRouter();
   const done = isDone(layer);
   const empty = layer.courses === 0;
@@ -317,8 +310,8 @@ export default function MappingDashboard() {
                         <div className="req-faculty">{r.faculty} · {r.owner}</div>
                         <div className="req-id" style={{ marginTop: 4, display: "inline-block" }}>{r.refId}</div>
                       </td>
-                      <td><LayerCell layer={r.layer1} label="Layer 1" submissionId={r.id} layerNo={1} /></td>
-                      <td><LayerCell layer={r.layer2} label="Layer 2" submissionId={r.id} layerNo={2} /></td>
+                      <td><LayerCell layer={r.layer1} submissionId={r.id} layerNo={1} /></td>
+                      <td><LayerCell layer={r.layer2} submissionId={r.id} layerNo={2} /></td>
                       <td>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
                           <div style={{ display: "flex", gap: 5 }}>
