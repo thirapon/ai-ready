@@ -60,4 +60,7 @@ CREATE INDEX IF NOT EXISTS submissions_status_idx ON submissions (status);
 --   ADD COLUMN IF NOT EXISTS form_data      jsonb,
 --   ADD COLUMN IF NOT EXISTS layer1_mapping jsonb,
 --   ADD COLUMN IF NOT EXISTS layer1_status  text DEFAULT 'not_started'
---     CHECK (layer1_status IN ('not_started','in_progress','submitted'));
+--     CHECK (layer1_status IN ('not_started','in_progress','submitted')),
+--   ADD COLUMN IF NOT EXISTS layer2_mapping jsonb,
+--   ADD COLUMN IF NOT EXISTS layer2_status  text DEFAULT 'not_started'
+--     CHECK (layer2_status IN ('not_started','in_progress','submitted'));

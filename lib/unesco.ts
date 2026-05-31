@@ -113,3 +113,42 @@ export function newRow(): MappingRow {
 
 // legacy type kept for API compatibility
 export type Layer1Mapping = MappingRow[];
+
+// ─── Layer 2 row (School & Industry) ─────────────────────────────────────────
+export interface Layer2Row {
+  id: string;
+  sector: "school" | "industry" | "";
+  competency: string;   // free text — user defines
+  courseCode: string;
+  courseName: string;
+  year: string;
+  embedMethod: string;
+  aiTool: string;
+  toolType: "essential" | "specialist" | "competitive" | "";
+  aiUsage: string;
+  freeZone: boolean;
+  consulted: boolean;
+  assisted: boolean;
+  generated: boolean;
+  notes: string;
+}
+
+export function newLayer2Row(): Layer2Row {
+  return {
+    id: Math.random().toString(36).slice(2),
+    sector: "",
+    competency: "",
+    courseCode: "",
+    courseName: "",
+    year: "",
+    embedMethod: "",
+    aiTool: "",
+    toolType: "",
+    aiUsage: "",
+    freeZone: false,
+    consulted: false,
+    assisted: false,
+    generated: false,
+    notes: "",
+  };
+}
