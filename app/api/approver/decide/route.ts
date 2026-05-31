@@ -60,15 +60,22 @@ export async function POST(req: NextRequest) {
   if (existing) {
     const fd = (existing.form_data ?? {}) as Record<string, string>;
     if (fd.email) {
-      sendDecisionNotification({
-        refId: existing.ref_id ?? "-",
-        facultyName: existing.faculty_name ?? "-",
-        programName: existing.program_name ?? "-",
-        action,
-        comment: comment?.trim(),
-        recipientEmail: fd.email,
-        recipientName: fd.owner ?? fd.email,
-      }).catch((e) => console.error("[email] sendDecisionNotification:", e));
+      try {
+        await sendDecisionNotification({
+          refId: existing.ref_id ?? "-",
+          facultyName: existing.faculty_name ?? "-",
+          programName: existing.program_name ?? "-",
+          action,
+          comment: comment?.trim(),
+          recipientEmail: fd.email,
+          recipientName: fd.owner ?? fd.email,
+        });
+        console.log("[decide] email sent to:", fd.email);
+      } catch (e) {
+        console.error("[decide] email error:", e);
+      }
+    } else {
+      console.log("[decide] no email in form_data — skipping");
     }
   }
 
