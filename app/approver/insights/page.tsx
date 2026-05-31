@@ -116,15 +116,20 @@ export default function ExecutiveInsights() {
     const allL2: Layer2Row[] = submissions.flatMap((s) => Array.isArray(s.layer2_mapping) ? s.layer2_mapping : []);
     const allRows = [...allL1, ...allL2];
 
-    // Tools
+    // Tools — split by comma to handle "ChatGPT, Claude, Gemini" as separate tools
+    const splitTools = (raw: string): string[] =>
+      raw.split(/[,،、;／/]/).map((t) => t.trim()).filter(Boolean);
+
     const toolCount: Record<string, number> = {};
     const catCount: Record<string, number> = {};
     allRows.forEach((r) => {
-      const tool = (r.aiTool ?? "").trim();
-      if (!tool) return;
-      toolCount[tool] = (toolCount[tool] || 0) + 1;
-      const cat = categorizeTool(tool);
-      catCount[cat] = (catCount[cat] || 0) + 1;
+      const raw = (r.aiTool ?? "").trim();
+      if (!raw) return;
+      splitTools(raw).forEach((tool) => {
+        toolCount[tool] = (toolCount[tool] || 0) + 1;
+        const cat = categorizeTool(tool);
+        catCount[cat] = (catCount[cat] || 0) + 1;
+      });
     });
     const topTools = Object.entries(toolCount).sort((a, b) => b[1] - a[1]).slice(0, 8)
       .map(([name, count]) => ({ name, count, cat: categorizeTool(name) }));
@@ -200,13 +205,13 @@ export default function ExecutiveInsights() {
         return 0.25;
       });
       const depth = depthVals.length ? depthVals.reduce((a, b) => a + b, 0) / depthVals.length : 0;
-      const toolCats = new Set(all.map((r) => categorizeTool((r as MappingRow).aiTool || "")).filter(Boolean));
+      const allToolNames = all.flatMap((r) => splitTools((r as MappingRow).aiTool || ""));
+      const toolCats = new Set(allToolNames.map((t) => categorizeTool(t)).filter(Boolean));
       const toolDiv = Math.min(1, toolCats.size / 5);
       const ind = l2.length ? l2.filter((r) => r.sector === "industry").length / l2.length : 0;
       const score = Math.round((completeness * 0.4 + dimCov * 0.2 + depth * 0.2 + toolDiv * 0.1 + ind * 0.1) * 100);
-      const toolNames = all.map((r) => (r as MappingRow).aiTool).filter(Boolean);
       const topCatCounts: Record<string, number> = {};
-      toolNames.forEach((t) => { const c = categorizeTool(t); topCatCounts[c] = (topCatCounts[c] || 0) + 1; });
+      allToolNames.forEach((t) => { const c = categorizeTool(t); topCatCounts[c] = (topCatCounts[c] || 0) + 1; });
       const topCat = Object.entries(topCatCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "llm";
       const flags: string[] = [];
       if (!dims.has("ethics")) flags.push("no-ethics");
@@ -217,7 +222,7 @@ export default function ExecutiveInsights() {
         program: s.program_name,
         faculty: s.faculty_name.replace(/^คณะ/, ""),
         score, topCat,
-        toolsU: new Set(toolNames).size,
+        toolsU: new Set(allToolNames).size,
         flags,
         factors: { completeness, dimCoverage: dimCov, depth, toolDiv, industry: ind },
       };
