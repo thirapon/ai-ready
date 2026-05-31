@@ -67,13 +67,17 @@ export async function POST(req: NextRequest) {
     }
     if (isSubmit && data) {
       const fd = (formData ?? {}) as Record<string, string>;
-      sendSubmissionNotification({
-        refId: (data as { ref_id?: string }).ref_id ?? "-",
-        facultyName: facultyName,
-        programName: programName,
-        ownerName: fd.owner ?? "-",
-        ownerEmail: fd.email ?? "-",
-      }).catch((e) => console.error("[email] sendSubmissionNotification:", e));
+      try {
+        await sendSubmissionNotification({
+          refId: (data as { ref_id?: string }).ref_id ?? "-",
+          facultyName: facultyName,
+          programName: programName,
+          ownerName: fd.owner ?? "-",
+          ownerEmail: fd.email ?? "-",
+        });
+      } catch (e) {
+        console.error("[email] sendSubmissionNotification:", e);
+      }
     }
 
     return NextResponse.json({ success: true, submission: data }, { status: 200 });
@@ -110,13 +114,17 @@ export async function POST(req: NextRequest) {
     }
     if (isSubmit && data) {
       const fd = (formData ?? {}) as Record<string, string>;
-      sendSubmissionNotification({
-        refId: (data as { ref_id?: string }).ref_id ?? "-",
-        facultyName: facultyName,
-        programName: programName,
-        ownerName: fd.owner ?? "-",
-        ownerEmail: fd.email ?? "-",
-      }).catch((e) => console.error("[email] sendSubmissionNotification:", e));
+      try {
+        await sendSubmissionNotification({
+          refId: (data as { ref_id?: string }).ref_id ?? "-",
+          facultyName: facultyName,
+          programName: programName,
+          ownerName: fd.owner ?? "-",
+          ownerEmail: fd.email ?? "-",
+        });
+      } catch (e) {
+        console.error("[email] sendSubmissionNotification:", e);
+      }
     }
 
     return NextResponse.json({ success: true, submission: data }, { status: 200 });
