@@ -1,0 +1,613 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { SESSION_KEY } from "@/lib/faculties";
+import type { MappingRow, Layer2Row } from "@/lib/unesco";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface Submission {
+  id: string;
+  ref_id: string | null;
+  faculty_name: string;
+  program_name: string;
+  form_data: Record<string, unknown> | null;
+  layer1_mapping: MappingRow[] | null;
+  layer2_mapping: Layer2Row[] | null;
+}
+
+// ─── Tool categorization ─────────────────────────────────────────────────────
+const TOOL_KEYWORDS: Record<string, string[]> = {
+  llm:    ["chatgpt", "claude", "gemini", "gpt", "perplexity", "copilot", "llm", "bard", "mistral", "llama"],
+  media:  ["midjourney", "runway", "elevenlabs", "suno", "stable diffusion", "firefly", "dall", "figma ai", "image ai", "kling", "pika", "leonardo"],
+  auto:   ["n8n", "zapier", "make.com", "langchain", "api", "cursor", "github copilot", "automation", "agent", "workflow", "flowise"],
+  data:   ["code interpreter", "excel", "power bi", "julius", "tableau", "data", "analytics", "pandas", "superset"],
+};
+const CAT_META: Record<string, { label: string; color: string }> = {
+  llm:    { label: "LLM / Chat",              color: "#1a4f8a" },
+  media:  { label: "Gen-media",               color: "#6a3eb5" },
+  auto:   { label: "Automation & Agents",     color: "#0f7b6c" },
+  data:   { label: "Data & Analytics",        color: "#b6620e" },
+  domain: { label: "Domain-specific",         color: "#4b5868" },
+};
+
+function categorizeTool(name: string): string {
+  const n = name.toLowerCase();
+  for (const [cat, kws] of Object.entries(TOOL_KEYWORDS)) {
+    if (kws.some((k) => n.includes(k))) return cat;
+  }
+  return "domain";
+}
+
+const DIM_NAMES: Record<string, string> = {
+  human:      "Human-centred Mindset",
+  ethics:     "Ethics of AI",
+  techniques: "AI Techniques & Applications",
+  design:     "AI System Design",
+};
+const DIM_KEYS = ["human", "ethics", "techniques", "design"];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function isDone(mapping: MappingRow[] | Layer2Row[] | null, layer: 1 | 2) {
+  if (!Array.isArray(mapping) || mapping.length === 0) return false;
+  if (layer === 1) return (mapping as MappingRow[]).every((r) => r.courseName?.trim());
+  return (mapping as Layer2Row[]).every((r) => r.competency?.trim() || r.courseName?.trim());
+}
+
+function scoreColor(s: number) {
+  if (s >= 80) return "#137a4a";
+  if (s >= 60) return "#1a4f8a";
+  if (s >= 40) return "#a86a14";
+  return "#b53030";
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, sub, color, bg }: { icon: React.ReactNode; label: string; value: string | number; sub: string; color: string; bg: string }) {
+  return (
+    <div className="stat-card" style={{ "--stat-color": color, "--stat-bg": bg } as React.CSSProperties}>
+      <div className="stat-card__head"><span>{label}</span><span className="stat-card__icon">{icon}</span></div>
+      <div className="stat-card__num">{value}</div>
+      <div className="stat-card__sub">{sub}</div>
+    </div>
+  );
+}
+
+function InsCard({ children, title, icon, sub }: { children: React.ReactNode; title: string; icon: React.ReactNode; sub?: string }) {
+  return (
+    <div className="ins-card">
+      <div className="ins-card__head">
+        <h2 className="ins-card__title">{icon}{title}</h2>
+        {sub && <div className="ins-card__sub">{sub}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function ExecutiveInsights() {
+  const router = useRouter();
+  const [session, setSession] = useState<{ name: string } | null>(null);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
+    if (!raw) { router.replace("/login"); return; }
+    try {
+      const sess = JSON.parse(raw);
+      if (sess.role !== "approver") { router.replace("/login"); return; }
+      setSession(sess);
+    } catch { router.replace("/login"); return; }
+
+    fetch("/api/approver/mapping")
+      .then((r) => r.ok ? r.json() : { submissions: [] })
+      .then((d) => setSubmissions(d.submissions ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [router]);
+
+  const insights = useMemo(() => {
+    if (submissions.length === 0) return null;
+
+    const allL1: MappingRow[] = submissions.flatMap((s) => Array.isArray(s.layer1_mapping) ? s.layer1_mapping : []);
+    const allL2: Layer2Row[] = submissions.flatMap((s) => Array.isArray(s.layer2_mapping) ? s.layer2_mapping : []);
+    const allRows = [...allL1, ...allL2];
+
+    // Tools
+    const toolCount: Record<string, number> = {};
+    const catCount: Record<string, number> = {};
+    allRows.forEach((r) => {
+      const tool = (r.aiTool ?? "").trim();
+      if (!tool) return;
+      toolCount[tool] = (toolCount[tool] || 0) + 1;
+      const cat = categorizeTool(tool);
+      catCount[cat] = (catCount[cat] || 0) + 1;
+    });
+    const topTools = Object.entries(toolCount).sort((a, b) => b[1] - a[1]).slice(0, 8)
+      .map(([name, count]) => ({ name, count, cat: categorizeTool(name) }));
+    const toolsUnique = Object.keys(toolCount).length;
+    const catTotal = Math.max(1, Object.values(catCount).reduce((a, b) => a + b, 0));
+    const cats = Object.keys(CAT_META).map((k) => ({
+      key: k, ...CAT_META[k], count: catCount[k] || 0,
+      pct: Math.round((catCount[k] || 0) / catTotal * 100),
+    })).sort((a, b) => b.count - a.count);
+
+    // Dimensions (Layer 1)
+    const dimCount: Record<string, number> = {};
+    const dimPrograms: Record<string, Set<string>> = {};
+    allL1.forEach((r, i) => {
+      if (!r.dimension) return;
+      dimCount[r.dimension] = (dimCount[r.dimension] || 0) + 1;
+      if (!dimPrograms[r.dimension]) dimPrograms[r.dimension] = new Set();
+      const subIdx = Math.floor(i / Math.max(1, allL1.length / submissions.length));
+      dimPrograms[r.dimension].add(String(subIdx));
+    });
+    const dimMax = Math.max(1, ...DIM_KEYS.map((k) => dimCount[k] || 0));
+    const dims = DIM_KEYS.map((k) => ({
+      key: k, name: DIM_NAMES[k] || k,
+      count: dimCount[k] || 0,
+      pct: Math.round((dimCount[k] || 0) / dimMax * 100),
+      programs: dimPrograms[k]?.size || 0,
+    }));
+
+    // Heatmap (autonomy × year)
+    const levelKeys = [
+      { key: "freeZone",  label: "AI Free Zone" },
+      { key: "consulted", label: "AI Consulted" },
+      { key: "assisted",  label: "AI Assisted" },
+      { key: "generated", label: "AI Generated" },
+    ];
+    const heat: Record<string, Record<number, number>> = {};
+    let heatMax = 1;
+    levelKeys.forEach(({ key }) => { heat[key] = { 1: 0, 2: 0, 3: 0, 4: 0 }; });
+    allRows.forEach((r) => {
+      const yr = parseInt(String((r as MappingRow).year || 0));
+      if (![1, 2, 3, 4].includes(yr)) return;
+      levelKeys.forEach(({ key }) => {
+        if ((r as unknown as Record<string, unknown>)[key]) {
+          heat[key][yr]++;
+          heatMax = Math.max(heatMax, heat[key][yr]);
+        }
+      });
+    });
+
+    // Composition
+    const apply = allL1.filter((r) => r.competency?.toLowerCase().includes("apply")).length;
+    const create = allL1.filter((r) => r.competency?.toLowerCase().includes("create")).length;
+    const school = allL2.filter((r) => r.sector === "school").length;
+    const industry = allL2.filter((r) => r.sector === "industry").length;
+
+    // Ranking
+    const ranking = submissions.map((s) => {
+      const l1 = Array.isArray(s.layer1_mapping) ? s.layer1_mapping : [];
+      const l2 = Array.isArray(s.layer2_mapping) ? s.layer2_mapping : [];
+      const all = [...l1, ...l2];
+      const l1Done = isDone(s.layer1_mapping, 1);
+      const l2Done = isDone(s.layer2_mapping, 2);
+      const completeness = ((l1.length > 0 ? (l1.filter(r => r.courseName?.trim()).length / l1.length) : 0) +
+                            (l2.length > 0 ? (l2.filter(r => r.competency?.trim() || r.courseName?.trim()).length / l2.length) : 0)) / 2;
+      const dims = new Set(l1.map((r) => r.dimension).filter(Boolean));
+      const dimCov = dims.size / 4;
+      const depthVals = all.map((r) => {
+        const rv = r as unknown as Record<string, unknown>;
+        if (rv.generated) return 1.0;
+        if (rv.assisted) return 0.8;
+        if (rv.consulted) return 0.5;
+        if (rv.freeZone) return 0.25;
+        return 0.25;
+      });
+      const depth = depthVals.length ? depthVals.reduce((a, b) => a + b, 0) / depthVals.length : 0;
+      const toolCats = new Set(all.map((r) => categorizeTool((r as MappingRow).aiTool || "")).filter(Boolean));
+      const toolDiv = Math.min(1, toolCats.size / 5);
+      const ind = l2.length ? l2.filter((r) => r.sector === "industry").length / l2.length : 0;
+      const score = Math.round((completeness * 0.4 + dimCov * 0.2 + depth * 0.2 + toolDiv * 0.1 + ind * 0.1) * 100);
+      const toolNames = all.map((r) => (r as MappingRow).aiTool).filter(Boolean);
+      const topCatCounts: Record<string, number> = {};
+      toolNames.forEach((t) => { const c = categorizeTool(t); topCatCounts[c] = (topCatCounts[c] || 0) + 1; });
+      const topCat = Object.entries(topCatCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "llm";
+      const flags: string[] = [];
+      if (!dims.has("ethics")) flags.push("no-ethics");
+      if (!all.some((r) => (r as unknown as Record<string, unknown>).generated)) flags.push("shallow");
+      if (!l1Done || !l2Done) flags.push("incomplete");
+      return {
+        id: s.id, refId: s.ref_id ?? "—",
+        program: s.program_name,
+        faculty: s.faculty_name.replace(/^คณะ/, ""),
+        score, topCat,
+        toolsU: new Set(toolNames).size,
+        flags,
+        factors: { completeness, dimCoverage: dimCov, depth, toolDiv, industry: ind },
+      };
+    }).sort((a, b) => b.score - a.score);
+
+    // Gap flags
+    const flagDefs: Record<string, { kind: string; label: string }> = {
+      "no-ethics":  { kind: "warn", label: "ยังไม่ได้แมพมิติจริยธรรม (Ethics of AI)" },
+      "shallow":    { kind: "info", label: "ยังไม่มีการใช้ AI ระดับ Generated — ความลึกยังจำกัด" },
+      "incomplete": { kind: "info", label: "แมพยังไม่ครบทุกรายวิชา" },
+    };
+    const flags: { kind: string; label: string; program: string; faculty: string }[] = [];
+    ranking.forEach((p) => p.flags.forEach((fk) => flags.push({ kind: flagDefs[fk]?.kind || "info", label: flagDefs[fk]?.label || fk, program: p.program, faculty: p.faculty })));
+    flags.sort((a, b) => (a.kind === "warn" ? -1 : 1) - (b.kind === "warn" ? -1 : 1));
+
+    // Score methodology
+    const FACTOR_DEFS = [
+      { key: "completeness", label: "ความครบของการแมพ",       weight: 40, desc: "รายวิชาที่แมพแล้ว เทียบกับรายวิชาทั้งหมด" },
+      { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 20, desc: "แมพครบทั้ง 4 มิติ UNESCO หรือไม่" },
+      { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 20, desc: "ระดับ Consulted → Assisted → Generated" },
+      { key: "toolDiv",      label: "ความหลากหลายของเครื่องมือ", weight: 10, desc: "จำนวนกลุ่มเครื่องมือ AI ที่ใช้ (จาก 5 กลุ่ม)" },
+      { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 10, desc: "สัดส่วนสมรรถนะจาก Industry ใน Layer 2" },
+    ];
+    const scoreFactors = FACTOR_DEFS.map((d) => ({
+      ...d,
+      avg: ranking.length ? Math.round(ranking.reduce((s, p) => s + (p.factors[d.key as keyof typeof p.factors] || 0), 0) / ranking.length * 100) : 0,
+    }));
+
+    const readinessPct = ranking.length ? Math.round(ranking.reduce((s, p) => s + p.score, 0) / ranking.length) : 0;
+    const fullyMapped = submissions.filter((s) => isDone(s.layer1_mapping, 1) && isDone(s.layer2_mapping, 2)).length;
+    const embedCount = allL1.length + allL2.length;
+    const faculties = new Set(submissions.map((s) => s.faculty_name)).size;
+
+    return { topTools, cats, dims, heat: { levels: levelKeys, years: [1, 2, 3, 4], data: heat, max: heatMax }, composition: { apply, create, school, industry }, ranking, flags, scoreFactors, headline: { curricula: submissions.length, fullyMapped, embedCount, toolsUnique, faculties, readinessPct } };
+  }, [submissions]);
+
+  const handleLogout = () => {
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    router.push("/login");
+  };
+
+  if (!session || loading) return (
+    <div style={{ minHeight: "100vh", background: "#f6f8fb", display: "grid", placeItems: "center" }}>
+      <div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#f6f8fb" }}>
+      {/* Topbar */}
+      <header className="app-topbar">
+        <div className="app-topbar__logo">BU</div>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+            <span className="app-topbar__title">ระบบบริหารหลักสูตร AI-Ready</span>
+            <span className="topbar__role-pill">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+              Executive Insights
+            </span>
+          </div>
+          <div className="app-topbar__sub">มหาวิทยาลัยกรุงเทพ · Office of Academic Affairs</div>
+        </div>
+        <div style={{ flex: 1 }} />
+        <nav className="topbar__nav">
+          <a href="/approver">คำขออนุมัติ</a>
+          <a href="/approver/mapping">Curriculum Mapping</a>
+          <a href="/approver/insights" className="is-active">Executive Insights</a>
+        </nav>
+        <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ textAlign: "right", lineHeight: 1.2 }}>
+            <div style={{ fontWeight: 600, color: "#14202e", fontSize: 14 }}>{session.name}</div>
+            <div style={{ fontSize: 11.5, color: "#677889" }}>ประธานคณะกรรมการ AI-Ready</div>
+          </div>
+          <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#dbe7f4", color: "#1a4f8a", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12 }}>กก</div>
+          <button className="logout-btn" onClick={handleLogout} title="ออกจากระบบ">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main style={{ maxWidth: 1180, margin: "0 auto", padding: "32px 24px 60px", display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* Page head */}
+        <div className="page-head">
+          <div>
+            <div className="page-head__crumbs">ระบบ AI-Ready Curriculum &nbsp;›&nbsp; <span>Executive Insights</span></div>
+            <h1 className="page-head__title">ภาพรวมความพร้อม AI-Ready ของหลักสูตร</h1>
+            <p className="page-head__desc">สรุป insight จากการแมพ Layer 1 (UNESCO) และ Layer 2 (School &amp; Industry) ของทุกหลักสูตร — เครื่องมือ AI ที่ใช้ ความลึกของสมรรถนะ และช่องว่างที่ควรติดตาม</p>
+          </div>
+          <div className="page-head__meta">
+            <b>AI-Ready Score เฉลี่ย</b>
+            <span style={{ fontSize: 30, fontWeight: 700, color: "#1a4f8a", fontFamily: "'IBM Plex Sans', sans-serif", lineHeight: 1.1, display: "block", margin: "2px 0" }}>
+              {insights?.headline.readinessPct ?? 0}%
+            </span>
+            ความสมบูรณ์ของการแมพทั้ง 2 Layer
+          </div>
+        </div>
+
+        {/* No data state */}
+        {!insights ? (
+          <div className="empty" style={{ padding: 60 }}>
+            <div className="empty__icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 4 }}>ยังไม่มีข้อมูลการ Mapping</div>
+            <div>เมื่อหลักสูตรเริ่มกรอกข้อมูล Layer 1 และ Layer 2 insights จะปรากฏที่นี่</div>
+          </div>
+        ) : (
+          <>
+            {/* Headline stats */}
+            <div className="stats">
+              {[
+                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>, label: "หลักสูตร AI-Ready", value: `${insights.headline.fullyMapped}/${insights.headline.curricula}`, sub: "แมพครบทั้ง 2 Layer", color: "#137a4a", bg: "#e6f4ec" },
+                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>, label: "จุดฝัง AI ในรายวิชา", value: insights.headline.embedCount, sub: "course × competency mappings", color: "#1a4f8a", bg: "#eef4fb" },
+                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>, label: "เครื่องมือ AI ที่ใช้", value: insights.headline.toolsUnique, sub: "unique tools ทั้งระบบ", color: "#6a3eb5", bg: "#f3ecfb" },
+                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>, label: "คณะที่เข้าร่วม", value: insights.headline.faculties, sub: `${insights.headline.curricula} หลักสูตร`, color: "#b6620e", bg: "#fcf3e1" },
+              ].map((s, i) => <StatCard key={i} {...s} />)}
+            </div>
+
+            {/* Tools + Donut */}
+            <div className="ins-grid">
+              {/* Top Tools */}
+              <InsCard
+                title="เครื่องมือ AI ที่ใช้มากที่สุด"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>}
+                sub={`รวมจากทุกหลักสูตร · เครื่องมือทั้งหมด ${insights.headline.toolsUnique} ตัว`}
+              >
+                {insights.topTools.length === 0 ? (
+                  <div style={{ color: "#8b99a8", fontSize: 13 }}>ยังไม่มีข้อมูลเครื่องมือ</div>
+                ) : (
+                  <div className="lead">
+                    {insights.topTools.map((t) => {
+                      const max = insights.topTools[0]?.count || 1;
+                      return (
+                        <div className="lead__row" key={t.name}>
+                          <span className="lead__name">
+                            <span className="lead__dot" style={{ background: CAT_META[t.cat]?.color || "#4b5868" }} />
+                            {t.name}
+                          </span>
+                          <span className="lead__track"><span className="lead__fill" style={{ width: (t.count / max * 100) + "%", background: CAT_META[t.cat]?.color || "#4b5868" }} /></span>
+                          <span className="lead__val">{t.count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </InsCard>
+
+              {/* Donut */}
+              <InsCard
+                title="สัดส่วนตามประเภทเครื่องมือ"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>}
+                sub="หลักสูตรพึ่งพาเครื่องมือกลุ่มใดมากที่สุด"
+              >
+                {insights.cats.every((c) => c.count === 0) ? (
+                  <div style={{ color: "#8b99a8", fontSize: 13 }}>ยังไม่มีข้อมูล</div>
+                ) : (() => {
+                  const total = Math.max(1, insights.cats.reduce((s, c) => s + c.count, 0));
+                  let acc = 0;
+                  const stops = insights.cats.filter((c) => c.count > 0).map((c) => {
+                    const start = acc / total * 360;
+                    acc += c.count;
+                    return `${c.color} ${start}deg ${acc / total * 360}deg`;
+                  }).join(", ");
+                  const top = insights.cats[0];
+                  return (
+                    <div className="donut-wrap">
+                      <div className="donut" style={{ background: `conic-gradient(${stops})` }}>
+                        <div className="donut__center">
+                          <div>
+                            <div className="donut__num">{top.pct}%</div>
+                            <div className="donut__lbl">{top.label}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="donut-legend">
+                        {insights.cats.map((c) => (
+                          <div className="donut-legend__row" key={c.key}>
+                            <span className="donut-legend__sw" style={{ background: c.color }} />
+                            <span className="donut-legend__name">{c.label}</span>
+                            <span className="donut-legend__val">{c.count}<span className="donut-legend__pct">({c.pct}%)</span></span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </InsCard>
+            </div>
+
+            {/* Dimension + Heatmap */}
+            <div className="ins-grid">
+              {/* Dimension */}
+              <InsCard
+                title="ความครอบคลุมมิติสมรรถนะ (UNESCO Layer 1)"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10M18 20V4M6 20v-6"/></svg>}
+                sub="จำนวนการแมพในแต่ละมิติ และจำนวนหลักสูตรที่ครอบคลุม"
+              >
+                <div className="dim">
+                  {insights.dims.map((d) => (
+                    <div className={`dim__row${d.count === 0 ? " is-zero" : ""}`} key={d.key}>
+                      <div className="dim__top">
+                        <span className="dim__name">{d.name}</span>
+                        <span className="dim__meta"><b>{d.count}</b> mappings · <b>{d.programs}</b>/{insights.headline.curricula} หลักสูตร</span>
+                      </div>
+                      <span className="dim__track"><span className="dim__fill" style={{ width: Math.max(d.pct, d.count === 0 ? 0 : 4) + "%" }} /></span>
+                    </div>
+                  ))}
+                </div>
+              </InsCard>
+
+              {/* Heatmap */}
+              <InsCard
+                title="ระดับการใช้ AI ตามชั้นปี"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}
+                sub="ดูว่าระดับการใช้ AI ของนักศึกษาไล่ลึกขึ้นตามชั้นปีหรือไม่"
+              >
+                <div className="heat__colhead">
+                  <span>ระดับการใช้ AI</span>
+                  {insights.heat.years.map((y) => <span key={y}>ปี {y}</span>)}
+                </div>
+                <div className="heat">
+                  {insights.heat.levels.map(({ key, label }) => (
+                    <div className="heat__row" key={key}>
+                      <span className="heat__rowlabel">{label}</span>
+                      {insights.heat.years.map((y) => {
+                        const n = insights.heat.data[key]?.[y] || 0;
+                        const a = n === 0 ? 0 : 0.12 + (n / insights.heat.max) * 0.78;
+                        return (
+                          <span key={y} className="heat__cell" style={{ background: n === 0 ? "var(--ink-50)" : `rgba(26,79,138,${a.toFixed(2)})`, color: n / insights.heat.max > 0.5 ? "#fff" : "var(--ink-700)", borderColor: n === 0 ? "var(--ink-100)" : "transparent" }}>
+                            {n || ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                <div className="heat__legend">
+                  น้อย
+                  <span className="heat__scale">
+                    {[0.12, 0.35, 0.58, 0.8, 0.95].map((a, i) => <span key={i} className="heat__swatch" style={{ background: `rgba(26,79,138,${a})` }} />)}
+                  </span>
+                  มาก
+                </div>
+              </InsCard>
+            </div>
+
+            {/* Composition + Flags */}
+            <div className="ins-grid">
+              {/* Composition */}
+              <InsCard
+                title="โครงสร้างสมรรถนะ"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20M2 6h20M2 18h20"/></svg>}
+                sub="ระดับ Apply / Create และที่มา School / Industry"
+              >
+                {(() => {
+                  const { apply, create, school, industry } = insights.composition;
+                  const t1 = Math.max(1, apply + create), t2 = Math.max(1, school + industry);
+                  return (
+                    <div className="comp">
+                      <div className="comp__block">
+                        <span className="comp__label">ระดับสมรรถนะ (UNESCO Layer 1)</span>
+                        <div className="comp__bar">
+                          <span className="comp__seg" style={{ width: (apply / t1 * 100) + "%", background: "#137a4a" }}>Apply<b>{Math.round(apply / t1 * 100)}%</b></span>
+                          <span className="comp__seg" style={{ width: (create / t1 * 100) + "%", background: "#6a3eb5" }}>Create<b>{Math.round(create / t1 * 100)}%</b></span>
+                        </div>
+                      </div>
+                      <div className="comp__block">
+                        <span className="comp__label">ที่มาของสมรรถนะ (Layer 2)</span>
+                        <div className="comp__bar">
+                          <span className="comp__seg" style={{ width: (school / t2 * 100) + "%", background: "#1a4f8a" }}>School<b>{Math.round(school / t2 * 100)}%</b></span>
+                          <span className="comp__seg" style={{ width: (industry / t2 * 100) + "%", background: "#b6620e" }}>Industry<b>{Math.round(industry / t2 * 100)}%</b></span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </InsCard>
+
+              {/* Gap Flags */}
+              <InsCard
+                title="ประเด็นที่ควรพิจารณา"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                sub={`${insights.flags.length} รายการ — ช่องว่างเชิงคุณภาพที่ควรติดตาม`}
+              >
+                {insights.flags.length === 0 ? (
+                  <div style={{ color: "#137a4a", fontSize: 13, fontWeight: 600 }}>✓ ไม่พบประเด็นที่ต้องติดตาม</div>
+                ) : (
+                  <div className="flags">
+                    {insights.flags.map((f, i) => (
+                      <div className={`flag flag--${f.kind}`} key={i}>
+                        <span className="flag__icon">
+                          {f.kind === "warn"
+                            ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>}
+                        </span>
+                        <div className="flag__body">
+                          <div className="flag__txt">{f.label}</div>
+                          <div className="flag__prog">{f.program} · {f.faculty}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </InsCard>
+            </div>
+
+            {/* Score Methodology */}
+            <div className="ins-grid ins-grid--ranking">
+              <InsCard
+                title="AI-Ready Score คำนวณอย่างไร"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>}
+              >
+                <div className="method__intro">
+                  <b>AI-Ready Score</b> เป็นคะแนนผสม (composite) 0–100 ที่รวม <b>คุณภาพและความลึก</b> ของการออกแบบหลักสูตร
+                  <span className="method__formula">Score = (ความครบ × 40%) + (ครอบคลุมมิติ × 20%) + (ความลึก × 20%) + (หลากหลายเครื่องมือ × 10%) + (เชื่อมอุตสาหกรรม × 10%)</span>
+                </div>
+                <div className="method-grid">
+                  {insights.scoreFactors.map((f) => (
+                    <div className="method-f" key={f.key}>
+                      <span className="method-f__w">{f.weight}%</span>
+                      <div className="method-f__name">{f.label}</div>
+                      <div className="method-f__desc">{f.desc}</div>
+                      <div className="method-f__avg">
+                        <div className="method-f__avg-top">ค่าเฉลี่ยรวม<b>{f.avg}%</b></div>
+                        <span className="method-f__track"><span className="method-f__fill" style={{ width: f.avg + "%" }} /></span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </InsCard>
+            </div>
+
+            {/* Ranking */}
+            <div className="ins-grid ins-grid--ranking">
+              <InsCard
+                title="ความพร้อม AI-Ready รายหลักสูตร"
+                icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>}
+                sub="คะแนนความสมบูรณ์ของการแมพ · เครื่องมือที่ใช้ · ประเด็นที่พบ"
+              >
+                <table className="rank-tbl">
+                  <thead>
+                    <tr>
+                      <th>หลักสูตร / คณะ</th>
+                      <th style={{ width: 150 }}>กลุ่มเครื่องมือหลัก</th>
+                      <th style={{ width: 90 }}>เครื่องมือ</th>
+                      <th style={{ width: 180 }}>AI-Ready Score</th>
+                      <th style={{ width: 90 }}>ประเด็น</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {insights.ranking.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          <div className="rank__prog">{p.program}</div>
+                          <div className="rank__fac">{p.faculty}</div>
+                        </td>
+                        <td>
+                          <span className="rank__cat">
+                            <span className="lead__dot" style={{ background: CAT_META[p.topCat]?.color || "#4b5868" }} />
+                            {CAT_META[p.topCat]?.label || "—"}
+                          </span>
+                        </td>
+                        <td style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 600, color: "#3a4859" }}>{p.toolsU} ตัว</td>
+                        <td>
+                          <div className="rank__score">
+                            <span className="rank__score-track"><span className="rank__score-fill" style={{ width: p.score + "%", background: scoreColor(p.score) }} /></span>
+                            <span className="rank__score-val" style={{ color: scoreColor(p.score) }}>{p.score}%</span>
+                          </div>
+                        </td>
+                        <td>
+                          {p.flags.length === 0
+                            ? <div className="rank__flags"><span className="rank__flag-ok">✓</span></div>
+                            : <div className="rank__flags">{p.flags.map((fk, i) => <span key={i} className={`rank__flag-dot ${fk === "no-ethics" ? "is-warn" : "is-info"}`} title={fk} />)}</div>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </InsCard>
+            </div>
+          </>
+        )}
+
+        <div style={{ textAlign: "center", fontSize: 12, color: "#8b99a8", marginTop: 8 }}>
+          ระบบบริหารหลักสูตร AI-Ready · มหาวิทยาลัยกรุงเทพ
+        </div>
+      </main>
+    </div>
+  );
+}

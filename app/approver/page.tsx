@@ -157,6 +157,8 @@ export default function ApproverDashboard() {
         <div style={{ flex: 1 }} />
         <nav className="topbar__nav">
           <a href="/approver" className="is-active">คำขออนุมัติ</a>
+          <a href="/approver/mapping">Curriculum Mapping</a>
+          <a href="/approver/insights">Executive Insights</a>
         </nav>
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
