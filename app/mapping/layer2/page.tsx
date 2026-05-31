@@ -248,12 +248,12 @@ function Layer2MappingInner() {
     if (!submissionId) { router.replace("/submit"); return; }
     try {
       const sess: Session = JSON.parse(raw);
-      if (sess.role !== "faculty") { router.replace("/login"); return; }
+      if (sess.role !== "faculty" && sess.role !== "approver") { router.replace("/login"); return; }
       setSession(sess);
       fetch(`/api/mapping/layer2?id=${encodeURIComponent(submissionId)}`)
         .then((r) => r.ok ? r.json() : Promise.reject(r.status))
         .then((d: Submission) => {
-          if (d.submissionStatus !== "approved") { router.replace("/submit"); return; }
+          if (sess.role === "faculty" && d.submissionStatus !== "approved") { router.replace("/submit"); return; }
           setSub(d);
           const saved = Array.isArray(d.layer2Mapping) && (d.layer2Mapping as Layer2Row[]).length > 0
             ? d.layer2Mapping as Layer2Row[] : null;
@@ -273,16 +273,18 @@ function Layer2MappingInner() {
     } catch { router.replace("/login"); }
   }, [router, submissionId, draftKey]);
 
+  const isReadOnly = session?.role === "approver";
+
   useEffect(() => {
-    if (!session || !dataLoaded) return;
+    if (!session || !dataLoaded || isReadOnly) return;
     setSaveMsg("กำลังบันทึก...");
     localStorage.setItem(draftKey, JSON.stringify(rows));
     const t = setTimeout(() => setSaveMsg("บันทึกอัตโนมัติแล้ว"), 600);
     return () => clearTimeout(t);
-  }, [rows, session, draftKey, dataLoaded]);
+  }, [rows, session, draftKey, dataLoaded, isReadOnly]);
 
-  const openNew  = () => { setPanelRow(newLayer2Row()); setEditIdx(null); setPanelOpen(true); };
-  const openEdit = (idx: number) => { setPanelRow({ ...rows[idx] }); setEditIdx(idx); setPanelOpen(true); };
+  const openNew  = () => { if (isReadOnly) return; setPanelRow(newLayer2Row()); setEditIdx(null); setPanelOpen(true); };
+  const openEdit = (idx: number) => { if (isReadOnly) return; setPanelRow({ ...rows[idx] }); setEditIdx(idx); setPanelOpen(true); };
   const closePanel = () => setPanelOpen(false);
   const savePanel  = (r: Layer2Row) => {
     if (editIdx !== null) setRows((p) => p.map((row, i) => i === editIdx ? r : row));
@@ -340,10 +342,22 @@ function Layer2MappingInner() {
 
       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 24px 80px" }}>
 
+        {/* Read-only banner for approver */}
+        {isReadOnly && (
+          <div style={{ background: "#eef4fb", border: "1px solid #dbe7f4", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a4f8a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span style={{ color: "#1a4f8a", fontWeight: 600 }}>โหมดดูข้อมูล (Approver)</span>
+            <span style={{ color: "#677889" }}>— ไม่สามารถแก้ไขข้อมูลได้</span>
+            <button onClick={() => router.push("/approver/mapping")} style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#1a4f8a", background: "none", border: "1px solid #dbe7f4", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+              ← กลับ Mapping Dashboard
+            </button>
+          </div>
+        )}
+
         {/* Breadcrumb + Layer tabs */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-            <a href="/submit" style={{ color: "#1a4f8a", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600 }}><BackIcon /> หน้าหลัก</a>
+            <a href={isReadOnly ? "/approver/mapping" : "/submit"} style={{ color: "#1a4f8a", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600 }}><BackIcon /> {isReadOnly ? "Mapping Dashboard" : "หน้าหลัก"}</a>
             <span style={{ color: "#b9c3cf" }}>›</span>
             <span style={{ color: "#677889" }}>{program}</span>
             <span style={{ color: "#b9c3cf" }}>›</span>
@@ -502,9 +516,11 @@ function Layer2MappingInner() {
         <div style={{ fontSize: 13, color: "#677889" }}>
           <b style={{ color: "#14202e" }}>{rows.length}</b> รายวิชา · <b style={{ color: "#6a3eb5" }}>{schoolCount}</b> School · <b style={{ color: "#b6620e" }}>{industryCount}</b> Industry
         </div>
-        <button className="btn btn--primary" onClick={saveMapping} disabled={saving}>
-          {saving ? <SpinIcon /> : <SaveIcon />} บันทึกการแมพ
-        </button>
+        {!isReadOnly && (
+          <button className="btn btn--primary" onClick={saveMapping} disabled={saving}>
+            {saving ? <SpinIcon /> : <SaveIcon />} บันทึกการแมพ
+          </button>
+        )}
       </div>
 
       {/* Slide-over panel */}
