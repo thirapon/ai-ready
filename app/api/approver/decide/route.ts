@@ -29,18 +29,11 @@ export async function POST(req: NextRequest) {
   const statusMap = { approve: "approved", changes: "changes", reject: "rejected" } as const;
   const newStatus = statusMap[action];
 
-  const { data: existing, error: fetchError } = await getSupabaseClient()
+  const { data: existing } = await getSupabaseClient()
     .from("submissions")
     .select("ref_id, faculty_name, program_name, form_data")
     .eq("id", submissionId)
     .maybeSingle();
-
-  console.log("[decide] existing:", JSON.stringify(existing));
-  console.log("[decide] fetchError:", fetchError?.message);
-  if (existing) {
-    const fd = (existing.form_data ?? {}) as Record<string, string>;
-    console.log("[decide] fd.email:", fd.email);
-  }
 
   const { error } = await getSupabaseClient()
     .from("submissions")
