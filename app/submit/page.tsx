@@ -6,7 +6,6 @@ import { SESSION_KEY } from "@/lib/faculties";
 import { Topbar } from "@/components/app/Topbar";
 
 type Status = "none" | "draft" | "pending" | "changes" | "approved";
-type Layer1Status = "not_started" | "in_progress" | "submitted" | null;
 
 interface Submission {
   id: string;
@@ -16,7 +15,8 @@ interface Submission {
   approver_comment: string | null;
   submitted_at: string | null;
   last_saved: string | null;
-  layer1_status: Layer1Status;
+  layer1_count: number;
+  layer2_count: number;
   program_name: string | null;
 }
 
@@ -28,12 +28,6 @@ const STATUS_CFG: Record<Status, { label: string; color: string; bg: string; bor
   pending:  { label: "รออนุมัติ",   color: "#a86a14", bg: "#fcf3e1", border: "#f0dca6" },
   changes:  { label: "ต้องแก้ไข",  color: "#b53030", bg: "#fdecec", border: "#f4d0d0" },
   approved: { label: "อนุมัติแล้ว", color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
-};
-
-const L1_CFG = {
-  not_started: { label: "ยังไม่เริ่ม",      color: "#677889", bg: "#eef1f5", border: "#dde3eb" },
-  in_progress:  { label: "กำลังดำเนินการ", color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
-  submitted:    { label: "เสร็จสมบูรณ์",   color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
 };
 
 function StatusPill({ status }: { status: Status }) {
@@ -72,13 +66,19 @@ function JourneyDot({ state }: { state: "done" | "active" | "locked" }) {
 }
 
 function CurriculumCard({ sub, onAction }: { sub: Submission; onAction: (sub: Submission) => void }) {
-  const st = sub.status;
-  const l1St = (sub.layer1_status ?? "not_started") as keyof typeof L1_CFG;
-  const l1Cfg = L1_CFG[l1St];
+  const st       = sub.status;
   const approved = st === "approved";
-  const l1Done = l1St === "submitted";
+  const l1Count  = sub.layer1_count ?? 0;
+  const l2Count  = sub.layer2_count ?? 0;
+  const l1Has    = l1Count > 0;
+  const l2Has    = l2Count > 0;
 
-  const btnLabel =
+  // Journey dot states
+  const approvalState: "done"|"active" = approved ? "done" : "active";
+  const l1State: "done"|"active"|"locked" = !approved ? "locked" : l1Has ? "done" : "active";
+  const l2State: "done"|"active"|"locked" = !approved ? "locked" : !l1Has ? "locked" : l2Has ? "done" : "active";
+
+  const approvalBtnLabel =
     st === "changes"  ? "แก้ไขและส่งใหม่" :
     st === "pending"  ? "ดู / แก้ไขคำขอ"  :
     st === "approved" ? "ดูคำขอ"           :
@@ -86,6 +86,7 @@ function CurriculumCard({ sub, onAction }: { sub: Submission; onAction: (sub: Su
 
   return (
     <div style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 12, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 14 }}>
+
       {/* Head */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: "#eef4fb", color: "#1a4f8a", display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -106,49 +107,70 @@ function CurriculumCard({ sub, onAction }: { sub: Submission; onAction: (sub: Su
         <StatusPill status={st} />
       </div>
 
-      {/* Feedback */}
+      {/* Approver feedback */}
       {st === "changes" && sub.approver_comment && (
         <div style={{ background: "#fdecec", border: "1px solid #f4d0d0", borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#b53030", lineHeight: 1.5 }}>
           <b>คณะกรรมการขอแก้ไข:</b> {sub.approver_comment}
         </div>
       )}
 
-      {/* Journey mini strip */}
+      {/* Journey strip */}
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <JourneyDot state={approved ? "done" : "active"} />
+        <JourneyDot state={approvalState} />
         <span style={{ fontSize: 11.5, color: "#677889", fontWeight: 600 }}>ขออนุมัติ</span>
-        <div style={{ flex: 1, height: 1.5, background: approved ? "#137a4a" : "#dde3eb", borderRadius: 99, maxWidth: 40 }} />
-        <JourneyDot state={!approved ? "locked" : l1Done ? "done" : "active"} />
-        <span style={{ fontSize: 11.5, color: "#677889", fontWeight: 600 }}>Layer 1</span>
-        <div style={{ flex: 1, height: 1.5, background: l1Done ? "#137a4a" : "#dde3eb", borderRadius: 99, maxWidth: 40 }} />
-        <JourneyDot state={l1Done ? "active" : "locked"} />
-        <span style={{ fontSize: 11.5, color: "#677889", fontWeight: 600 }}>Layer 2</span>
+        <div style={{ flex: 1, height: 1.5, background: approved ? "#137a4a" : "#dde3eb", borderRadius: 99, maxWidth: 36 }} />
 
-        {/* Layer 1 status pill */}
-        {approved && (
-          <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: l1Cfg.bg, color: l1Cfg.color, border: `1px solid ${l1Cfg.border}`, whiteSpace: "nowrap" }}>
-            L1: {l1Cfg.label}
-          </span>
-        )}
+        <JourneyDot state={l1State} />
+        <div>
+          <span style={{ fontSize: 11.5, color: "#677889", fontWeight: 600 }}>Layer 1</span>
+          {l1Has && <span style={{ fontSize: 10.5, color: "#137a4a", marginLeft: 4 }}>({l1Count} รายวิชา)</span>}
+        </div>
+        <div style={{ flex: 1, height: 1.5, background: l1Has ? "#137a4a" : "#dde3eb", borderRadius: 99, maxWidth: 36 }} />
+
+        <JourneyDot state={l2State} />
+        <div>
+          <span style={{ fontSize: 11.5, color: "#677889", fontWeight: 600 }}>Layer 2</span>
+          {l2Has && <span style={{ fontSize: 10.5, color: "#137a4a", marginLeft: 4 }}>({l2Count} รายวิชา)</span>}
+        </div>
       </div>
 
-      {/* Actions */}
-      <div style={{ display: "flex", gap: 8, paddingTop: 2 }}>
+      {/* Action buttons */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 2 }}>
+        {/* Step 1: Approval form */}
         <button
-          className={`hcard__btn${st === "approved" ? " hcard__btn--ghost" : ""}`}
+          className={`hcard__btn${approved ? " hcard__btn--ghost" : ""}`}
           style={{ fontSize: 13 }}
           onClick={() => onAction(sub)}
         >
-          {btnLabel} <ArrowIcon />
+          {approvalBtnLabel} <ArrowIcon />
         </button>
+
+        {/* Step 2: Layer 1 */}
         {approved && (
           <a
             href={`/mapping/layer1?id=${sub.id}`}
-            className={`hcard__btn${l1Done ? " hcard__btn--ghost" : ""}`}
+            className={`hcard__btn${l1Has ? " hcard__btn--ghost" : ""}`}
             style={{ fontSize: 13, textDecoration: "none" }}
           >
-            {l1Done ? "ดูการแมพ L1" : l1St === "in_progress" ? "ทำต่อ L1" : "เริ่มแมพ L1"} <ArrowIcon />
+            {l1Has ? `แก้ไข L1 (${l1Count})` : "เริ่มแมพ L1"} <ArrowIcon />
           </a>
+        )}
+
+        {/* Step 3: Layer 2 — only unlocks when L1 has data */}
+        {approved && l1Has && (
+          <a
+            href={`/mapping/layer2?id=${sub.id}`}
+            className={`hcard__btn${l2Has ? " hcard__btn--ghost" : ""}`}
+            style={{ fontSize: 13, textDecoration: "none" }}
+          >
+            {l2Has ? `แก้ไข L2 (${l2Count})` : "เริ่มแมพ L2"} <ArrowIcon />
+          </a>
+        )}
+        {approved && !l1Has && (
+          <span style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, background: "#f6f8fb", color: "#b9c3cf", border: "1px solid #eef1f6", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            L2 · ทำ L1 ก่อน
+          </span>
         )}
       </div>
     </div>

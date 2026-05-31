@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   if (facultyCode) {
     const { data, error } = await getSupabaseClient()
       .from("submissions")
-      .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved,layer1_status,program_name")
+      .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved,program_name,layer1_mapping,layer2_mapping")
       .eq("faculty_code", facultyCode)
       .order("created_at", { ascending: false });
 
@@ -32,7 +32,15 @@ export async function GET(req: NextRequest) {
       console.error("[/api/submissions GET by faculty]", error.message);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
-    return NextResponse.json({ submissions: data ?? [] });
+
+    // Compute row counts and strip the full mapping arrays from the response
+    const submissions = (data ?? []).map(({ layer1_mapping, layer2_mapping, ...s }) => ({
+      ...s,
+      layer1_count: Array.isArray(layer1_mapping) ? (layer1_mapping as unknown[]).length : 0,
+      layer2_count: Array.isArray(layer2_mapping) ? (layer2_mapping as unknown[]).length : 0,
+    }));
+
+    return NextResponse.json({ submissions });
   }
 
   return NextResponse.json({ error: "facultyCode or id is required" }, { status: 400 });
