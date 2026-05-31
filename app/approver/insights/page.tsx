@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
+import { FACULTY_PROGRAMS } from "@/components/form/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Submission {
@@ -11,6 +12,7 @@ interface Submission {
   ref_id: string | null;
   faculty_name: string;
   program_name: string;
+  status: string;
   form_data: Record<string, unknown> | null;
   layer1_mapping: MappingRow[] | null;
   layer2_mapping: Layer2Row[] | null;
@@ -249,7 +251,45 @@ export default function ExecutiveInsights() {
     const embedCount = allL1.length + allL2.length;
     const faculties = new Set(submissions.map((s) => s.faculty_name)).size;
 
-    return { topTools, cats, dims, heat: { levels: levelKeys, years: [1, 2, 3, 4], data: heat, max: heatMax }, composition: { apply, create, school, industry }, ranking, flags, scoreFactors, headline: { curricula: submissions.length, fullyMapped, embedCount, toolsUnique, faculties, readinessPct } };
+    // ── University coverage ──────────────────────────────────────────────────
+    const totalPrograms = Object.values(FACULTY_PROGRAMS).reduce((s, v) => s + v.length, 0);
+    const coveragePct = Math.round(submissions.length / totalPrograms * 100);
+
+    // ── Faculty-level summary ────────────────────────────────────────────────
+    const facultyMap: Record<string, {
+      name: string; key: string; submitted: number; total: number;
+      approved: number; pending: number; changes: number;
+      l1Done: number; l2Done: number; scoreSum: number;
+    }> = {};
+    submissions.forEach((s) => {
+      const key = s.faculty_name.replace(/^คณะ/, "");
+      if (!facultyMap[key]) {
+        facultyMap[key] = {
+          name: s.faculty_name, key,
+          submitted: 0, total: FACULTY_PROGRAMS[key]?.length ?? 0,
+          approved: 0, pending: 0, changes: 0,
+          l1Done: 0, l2Done: 0, scoreSum: 0,
+        };
+      }
+      const f = facultyMap[key];
+      f.submitted++;
+      if (s.status === "approved") f.approved++;
+      else if (s.status === "pending") f.pending++;
+      else if (s.status === "changes") f.changes++;
+      if (isDone(s.layer1_mapping, 1)) f.l1Done++;
+      if (isDone(s.layer2_mapping, 2)) f.l2Done++;
+    });
+    ranking.forEach((p) => {
+      const key = p.faculty;
+      if (facultyMap[key]) facultyMap[key].scoreSum += p.score;
+    });
+    const facultySummary = Object.values(facultyMap).map((f) => ({
+      ...f,
+      avgScore: f.submitted > 0 ? Math.round(f.scoreSum / f.submitted) : 0,
+      coverPct: f.total > 0 ? Math.round(f.submitted / f.total * 100) : 0,
+    })).sort((a, b) => b.avgScore - a.avgScore);
+
+    return { topTools, cats, dims, heat: { levels: levelKeys, years: [1, 2, 3, 4], data: heat, max: heatMax }, composition: { apply, create, school, industry }, ranking, flags, scoreFactors, facultySummary, coverage: { submitted: submissions.length, total: totalPrograms, pct: coveragePct }, headline: { curricula: submissions.length, fullyMapped, embedCount, toolsUnique, faculties, readinessPct } };
   }, [submissions]);
 
   const handleLogout = () => {
@@ -338,6 +378,79 @@ export default function ExecutiveInsights() {
                 { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>, label: "คณะที่เข้าร่วม", value: insights.headline.faculties, sub: `${insights.headline.curricula} หลักสูตร`, color: "#b6620e", bg: "#fcf3e1" },
               ].map((s, i) => <StatCard key={i} {...s} />)}
             </div>
+
+            {/* University Coverage */}
+            <div className="ins-card" style={{ flexDirection: "row", alignItems: "center", gap: 32, padding: "18px 24px" }}>
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>ความครอบคลุมหลักสูตรระดับมหาวิทยาลัย</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontSize: 32, fontWeight: 700, color: "#1a4f8a", fontFamily: "'IBM Plex Sans', sans-serif", lineHeight: 1 }}>{insights.coverage.submitted}</span>
+                  <span style={{ fontSize: 16, color: "#677889" }}>/ {insights.coverage.total} หลักสูตร</span>
+                  <span style={{ fontSize: 20, fontWeight: 700, color: insights.coverage.pct >= 80 ? "#137a4a" : insights.coverage.pct >= 50 ? "#a86a14" : "#1a4f8a", fontFamily: "'IBM Plex Sans', sans-serif" }}>({insights.coverage.pct}%)</span>
+                </div>
+                <div style={{ fontSize: 12.5, color: "#8b99a8", marginTop: 4 }}>ส่งข้อมูลเข้าระบบแล้ว จากทั้งหมด {insights.coverage.total} หลักสูตรในมหาวิทยาลัย</div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 14, background: "#eef1f6", borderRadius: 8, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: insights.coverage.pct + "%", background: insights.coverage.pct >= 80 ? "#137a4a" : insights.coverage.pct >= 50 ? "#a86a14" : "#1a4f8a", borderRadius: 8, transition: "width 0.6s ease" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11.5, color: "#8b99a8" }}>
+                  <span>0%</span><span>50%</span><span>100%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Faculty Summary */}
+            <InsCard
+              title="สรุปภาพรวมรายคณะ"
+              icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/><path d="M9 9v.01M15 9v.01"/></svg>}
+              sub="ความครอบคลุม AI-Ready ของแต่ละคณะ — เรียงตาม AI-Ready Score เฉลี่ย"
+            >
+              <table className="rank-tbl">
+                <thead>
+                  <tr>
+                    <th>คณะ</th>
+                    <th style={{ width: 160 }}>ความครอบคลุม</th>
+                    <th style={{ width: 80, textAlign: "center" }}>Layer 1</th>
+                    <th style={{ width: 80, textAlign: "center" }}>Layer 2</th>
+                    <th style={{ width: 80, textAlign: "center" }}>อนุมัติ</th>
+                    <th style={{ width: 170 }}>AI-Ready Score เฉลี่ย</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {insights.facultySummary.map((f) => (
+                    <tr key={f.key}>
+                      <td>
+                        <div className="rank__prog" style={{ fontSize: 13.5 }}>{f.name}</div>
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ flex: 1, height: 7, background: "#eef1f6", borderRadius: 4, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: f.coverPct + "%", background: f.coverPct >= 80 ? "#137a4a" : f.coverPct >= 50 ? "#a86a14" : "#1a4f8a", borderRadius: 4 }} />
+                          </div>
+                          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12, fontWeight: 700, color: "#3a4859", whiteSpace: "nowrap" }}>{f.submitted}/{f.total} ({f.coverPct}%)</span>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, fontWeight: 700, color: f.l1Done === f.submitted ? "#137a4a" : "#a86a14" }}>{f.l1Done}/{f.submitted}</span>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, fontWeight: 700, color: f.l2Done === f.submitted ? "#137a4a" : "#a86a14" }}>{f.l2Done}/{f.submitted}</span>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 12.5, fontWeight: 700, color: f.approved === f.submitted ? "#137a4a" : "#677889" }}>{f.approved}/{f.submitted}</span>
+                      </td>
+                      <td>
+                        <div className="rank__score">
+                          <span className="rank__score-track"><span className="rank__score-fill" style={{ width: f.avgScore + "%", background: scoreColor(f.avgScore) }} /></span>
+                          <span className="rank__score-val" style={{ color: scoreColor(f.avgScore) }}>{f.avgScore}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </InsCard>
 
             {/* Tools + Donut */}
             <div className="ins-grid">
