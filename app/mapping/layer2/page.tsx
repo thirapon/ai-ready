@@ -6,11 +6,19 @@ import { SESSION_KEY } from "@/lib/faculties";
 import { newLayer2Row } from "@/lib/unesco";
 import type { Layer2Row } from "@/lib/unesco";
 
+interface FormCompetency {
+  id: number;
+  name: string;
+  source: "school" | "industry";
+  years: number[];
+  desc: string;
+  note: string;
+}
 interface Submission {
   submissionStatus: string;
   refId: string | null;
   facultyName: string;
-  formData: { program?: string; owner?: string };
+  formData: { program?: string; owner?: string; competencies?: FormCompetency[] };
   layer2Mapping: Layer2Row[] | unknown;
   layer2Status: "not_started" | "in_progress" | "submitted";
 }
@@ -83,9 +91,10 @@ function IntegrationToggle({ label, desc, on, onClick }: { label: string; desc: 
 }
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
-function RowPanel({ open, row, isNew, onClose, onSave }: {
+function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [] }: {
   open: boolean; row: Layer2Row; isNew: boolean;
   onClose: () => void; onSave: (r: Layer2Row) => void;
+  suggestedCompetencies?: FormCompetency[];
 }) {
   const [draft, setDraft] = useState<Layer2Row>(row);
   useEffect(() => { setDraft(row); }, [row]);
@@ -130,10 +139,38 @@ function RowPanel({ open, row, isNew, onClose, onSave }: {
               })}
             </div>
 
-            {/* Competency — free text */}
-            <FieldLabel>Competency <span style={{ fontWeight: 400, color: "#8b99a8", fontSize: 11.5 }}>(กำหนดเอง)</span></FieldLabel>
+            {/* Competency — with suggestions from submission form */}
+            <FieldLabel>Competency</FieldLabel>
+            {(() => {
+              const filtered = suggestedCompetencies.filter(
+                (c) => !draft.sector || c.source === draft.sector
+              );
+              if (filtered.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11.5, color: "#677889", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    เลือกจากสมรรถนะในแบบฟอร์ม:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {filtered.map((c) => {
+                      const isSelected = draft.competency === c.name;
+                      const color = c.source === "school" ? "#6a3eb5" : "#b6620e";
+                      const bg    = c.source === "school" ? "#f3ecfb"  : "#fcf3e1";
+                      return (
+                        <button key={c.id} type="button"
+                          onClick={() => set({ competency: isSelected ? "" : c.name })}
+                          style={{ padding: "4px 10px", borderRadius: 99, fontSize: 12, fontWeight: 600, border: `1.5px solid ${isSelected ? color : "#dde3eb"}`, background: isSelected ? bg : "white", color: isSelected ? color : "#677889", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                          {c.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ marginBottom: 12 }}>
-              <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder="ระบุสมรรถนะ AI ที่ต้องการของคณะหรืออุตสาหกรรม..." rows={2} />
+              <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder="เลือกจากชิพด้านบน หรือพิมพ์สมรรถนะเอง..." rows={2} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
@@ -528,7 +565,8 @@ function Layer2MappingInner() {
       </div>
 
       {/* Slide-over panel */}
-      <RowPanel open={panelOpen} row={panelRow} isNew={editIdx === null} onClose={closePanel} onSave={savePanel} />
+      <RowPanel open={panelOpen} row={panelRow} isNew={editIdx === null} onClose={closePanel} onSave={savePanel}
+        suggestedCompetencies={(sub?.formData?.competencies ?? []) as FormCompetency[]} />
     </div>
   );
 }
