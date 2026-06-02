@@ -484,7 +484,7 @@ function VizPageInner() {
                   {tab === "l1" ? "Course → UNESCO Dimension → Competency" : "Course → School / Industry → Competency"}
                 </div>
                 <div className="cviz-card__sub">
-                  Competency node เดียวรับหลายเส้นได้ · สีเส้นตามมิติ · badge "X วิชา" บน node ที่มีหลายวิชาเชื่อมโยง · ชี้ node หรือเส้นเพื่อดูรายละเอียด
+                  Competency node เดียวรับหลายเส้นได้ · สีเส้นตามมิติ · badge &quot;X วิชา&quot; บน node ที่มีหลายวิชาเชื่อมโยง · ชี้ node หรือเส้นเพื่อดูรายละเอียด
                 </div>
               </div>
             </div>
