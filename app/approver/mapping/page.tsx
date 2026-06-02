@@ -313,12 +313,17 @@ export default function MappingDashboard() {
                       <td><LayerCell layer={r.layer1} submissionId={r.id} layerNo={1} /></td>
                       <td><LayerCell layer={r.layer2} submissionId={r.id} layerNo={2} /></td>
                       <td>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                           <div style={{ display: "flex", gap: 5 }}>
                             <span style={{ width: 10, height: 10, borderRadius: "50%", background: done1 ? "#137a4a" : "#dde3eb", display: "inline-block" }} />
                             <span style={{ width: 10, height: 10, borderRadius: "50%", background: done2 ? "#137a4a" : "#dde3eb", display: "inline-block" }} />
                           </div>
                           <span style={{ fontSize: 12, fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 700, color: "#677889" }}>{doneCount}/2</span>
+                          <a href={`/mapping/viz?id=${r.id}`}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "#137a4a", textDecoration: "none", padding: "3px 8px", borderRadius: 6, background: "#e6f4ec", border: "1px solid #b5dbc5", whiteSpace: "nowrap" }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            แผนที่
+                          </a>
                         </div>
                       </td>
                     </tr>

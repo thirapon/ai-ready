@@ -480,6 +480,10 @@ function Layer1MappingInner() {
           <div style={{ display: "flex", gap: 4, background: "white", border: "1px solid #dde3eb", borderRadius: 10, padding: 4 }}>
             <span style={{ padding: "6px 14px", borderRadius: 7, background: "#1a4f8a", color: "white", fontSize: 12.5, fontWeight: 700 }}>L1 · UNESCO Mapping</span>
             <a href={`/mapping/layer2?id=${submissionId}`} style={{ padding: "6px 14px", borderRadius: 7, color: "#677889", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>L2 · School & Industry</a>
+            <a href={`/mapping/viz?id=${submissionId}`} style={{ padding: "6px 12px", borderRadius: 7, color: "#137a4a", fontSize: 12.5, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, background: "#e6f4ec", border: "1px solid #b5dbc5" }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              แผนที่หลักสูตร
+            </a>
           </div>
         </div>
 
