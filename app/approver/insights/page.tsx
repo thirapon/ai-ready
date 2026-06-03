@@ -329,6 +329,7 @@ export default function ExecutiveInsights() {
           <a href="/approver">คำขออนุมัติ</a>
           <a href="/approver/mapping">Curriculum Mapping</a>
           <a href="/approver/insights" className="is-active">Executive Insights</a>
+          <a href="/approver/faculty-readiness">Faculty Readiness</a>
         </nav>
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
