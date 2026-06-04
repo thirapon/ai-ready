@@ -199,7 +199,7 @@ function FormPageInner() {
         <div className="page-head">
           <div>
             <div className="page-head__crumbs">ระบบ AI-Ready Curriculum &nbsp;›&nbsp; <span>{crumb}</span></div>
-            <h1 className="page-head__title">แบบฟอร์มขออนุมัติหลักสูตร AI-Ready</h1>
+            <h1 className="page-head__title">ขออนุมัติ School/Industry AI Competency Framework</h1>
             <p className="page-head__desc">กรอกข้อมูลหลักสูตรและสมรรถนะ AI ให้ครบถ้วนก่อนส่งขออนุมัติ</p>
           </div>
           <div className="page-head__meta">
