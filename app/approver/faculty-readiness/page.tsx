@@ -528,7 +528,7 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
 
   const sorted = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const out = q ? rows.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || r.dept.toLowerCase().includes(q)) : [...rows];
+    const out = q ? rows.filter(r => r.name.toLowerCase().includes(q) || r.id.toLowerCase().includes(q) || r.dept.toLowerCase().includes(q) || r.f.toLowerCase().includes(q)) : [...rows];
     out.sort((a,b) => sortDir * (a[sortKey]! > b[sortKey]! ? 1 : -1));
     return out;
   }, [rows, search, sortKey, sortDir]);
@@ -549,7 +549,7 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
           <span className="search__icon">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </span>
-          <input type="text" placeholder="ค้นหาชื่อ / รหัส / ภาควิชา" value={search} onChange={e => setSearch(e.target.value)} />
+          <input type="text" placeholder="ค้นหาชื่อ / รหัส / คณะ / หลักสูตร" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <span style={{ fontSize:12, color:"var(--ink-500)" }}>{sorted.length} รายการ</span>
       </div>
@@ -558,7 +558,8 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
           <thead>
             <tr>
               <SortTh k="name" label="ชื่อ-สกุล" />
-              <th>คณะ / ภาควิชา</th>
+              <SortTh k="f" label="คณะ" />
+              <SortTh k="dept" label="หลักสูตร" />
               <SortTh k="path" label="Path" w={130} />
               <SortTh k="score" label="คะแนนรวม" w={140} />
               <SortTh k="d1" label="K" w={54} />
@@ -575,10 +576,8 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
                   <div style={{ fontWeight:600, color:"var(--ink-900)" }}>{r.name}</div>
                   <div style={{ fontSize:11, color:"var(--ink-400)" }}>{r.id}</div>
                 </td>
-                <td>
-                  <div style={{ fontSize:12 }}>{FACULTY_SHORT[r.f] || r.f}</div>
-                  <div style={{ fontSize:11, color:"var(--ink-500)" }}>{r.dept}</div>
-                </td>
+                <td style={{ fontSize:12 }}>{FACULTY_SHORT[r.f] || r.f}</td>
+                <td style={{ fontSize:12 }}>{r.dept}</td>
                 <td><PathBadge path={r.path} /></td>
                 <td><ScoreMiniBar score={r.score} /></td>
                 {(["d1","d2","d3","d4"] as (keyof DimAvgs)[]).map(d => {

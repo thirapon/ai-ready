@@ -14,7 +14,7 @@ export interface Faculty {
 export const FACULTIES: Faculty[] = [
   { code: "commarts", name: "คณะนิเทศศาสตร์" },
   { code: "business", name: "คณะบริหารธุรกิจ" },
-  { code: "account",  name: "คณะการบัญชี" },
+  { code: "account",  name: "คณะบัญชี" },
   { code: "law",      name: "คณะนิติศาสตร์" },
   { code: "huso",     name: "คณะมนุษยศาสตร์และการจัดการการท่องเที่ยว" },
   { code: "econ",     name: "คณะเศรษฐศาสตร์และการลงทุน" },

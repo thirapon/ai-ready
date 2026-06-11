@@ -422,7 +422,7 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
           <thead>
             <tr>
               <SortTh k="name" label="ชื่อ-สกุล" />
-              <th>หลักสูตร</th>
+              <SortTh k="dept" label="หลักสูตร" />
               <SortTh k="path" label="Path" w={130} />
               <SortTh k="score" label="คะแนนรวม" w={140} />
               <SortTh k="d1" label="K" w={54} />
