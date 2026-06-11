@@ -874,6 +874,7 @@ body {
   z-index: 200; animation: slideUp 0.25s ease;
 }
 @keyframes slideUp { from { transform: translateX(-50%) translateY(16px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@keyframes fr-spin { to { transform: rotate(360deg); } }
 .toast__icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.12); display: grid; place-items: center; flex-shrink: 0; }
 .toast__text { line-height: 1.35; }
 .toast__text b { display: block; font-weight: 700; }

@@ -784,6 +784,7 @@ export default function FacultyReadinessPage() {
   const [liveData, setLiveData] = useState<FRRow[] | null>(null);
   const [fetchError, setFetchError] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -801,6 +802,16 @@ export default function FacultyReadinessPage() {
       .then(d => { setLiveData(d.rows ?? []); setFetchedAt(d.fetchedAt ?? null); })
       .catch(() => setFetchError(true));
   }, [router]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setFetchError(false);
+    fetch("/api/faculty-readiness/refresh")
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(d => { setLiveData(d.rows ?? []); setFetchedAt(d.fetchedAt ?? null); })
+      .catch(() => setFetchError(true))
+      .finally(() => setRefreshing(false));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem(SESSION_KEY);
@@ -828,11 +839,37 @@ export default function FacultyReadinessPage() {
               ปีการศึกษา 2568
             </span>
           </div>
-          <div className="app-topbar__sub">
-            มหาวิทยาลัยกรุงเทพ · สายวิชาการ AI-Ready · {data.length} อาจารย์
+          <div className="app-topbar__sub" style={{ display:"flex", alignItems:"center", gap:0, flexWrap:"wrap" }}>
+            <span>มหาวิทยาลัยกรุงเทพ · สายวิชาการ AI-Ready · {data.length} อาจารย์</span>
             {fetchError && <span style={{ color:"#b53030", marginLeft:8 }}>⚠️ ใช้ข้อมูล mock</span>}
-            {isLive && fetchedAt && <span style={{ color:"#137a4a", marginLeft:8 }}>● Live</span>}
+            {isLive && fetchedAt && (
+              <span style={{ color:"#137a4a", marginLeft:8 }}>
+                ● Live · อัปเดต {new Date(fetchedAt).toLocaleTimeString("th-TH", { hour:"2-digit", minute:"2-digit", second:"2-digit" })}
+              </span>
+            )}
             {!isLive && !fetchError && <span style={{ color:"#677889", marginLeft:8 }}>กำลังโหลด…</span>}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="ดึงข้อมูลใหม่จาก Google Sheets"
+              style={{
+                marginLeft:10, display:"inline-flex", alignItems:"center", gap:5,
+                padding:"3px 10px", borderRadius:6, fontSize:11.5, fontWeight:600,
+                border:"1px solid #b3d4f5", background: refreshing ? "#dbe7f4" : "#eef4fb",
+                color:"#1a4f8a", cursor: refreshing ? "not-allowed" : "pointer",
+                lineHeight:1, transition:"background 0.15s",
+              }}
+            >
+              <svg
+                width="11" height="11" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                style={{ flexShrink:0, animation: refreshing ? "fr-spin 0.8s linear infinite" : "none" }}
+              >
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              {refreshing ? "กำลังดึงข้อมูล…" : "Refresh จาก Sheets"}
+            </button>
           </div>
         </div>
         <div style={{ flex:1 }} />
