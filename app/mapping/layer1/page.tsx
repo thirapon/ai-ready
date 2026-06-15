@@ -650,11 +650,11 @@ function Layer1MappingInner() {
                           <div style={{ background: "#f6f8fb", borderTop: "1px solid #eef1f6", padding: "14px 16px 16px 48px" }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการฝัง AI ในรายวิชา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการ embed AI ในรายวิชา</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.embedMethod || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการใช้ AI ของนักศึกษา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการใช้ AI Tool ในรายวิชา</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.aiUsage || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               {row.notes && (
