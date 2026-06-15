@@ -819,11 +819,12 @@ export default function FacultyReadinessPage() {
     router.push("/login");
   };
 
-  const data: FRRow[] = liveData ?? FR_RAW;
+  const data: FRRow[] = liveData ?? [];
   const isLive = liveData !== null && !fetchError;
+  const isLoading = liveData === null && !fetchError;
 
-  if (!session) {
-    return <div style={{ minHeight:"100vh", background:"#f6f8fb", display:"grid", placeItems:"center" }}><div style={{ color:"#677889", fontSize:14 }}>กำลังโหลด…</div></div>;
+  if (!session || isLoading) {
+    return <div style={{ minHeight:"100vh", background:"#f6f8fb", display:"grid", placeItems:"center" }}><div style={{ color:"#677889", fontSize:14 }}>กำลังดึงข้อมูลจาก Google Sheets…</div></div>;
   }
 
   return (
