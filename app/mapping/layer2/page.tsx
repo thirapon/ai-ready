@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import { newLayer2Row } from "@/lib/unesco";
@@ -280,6 +280,7 @@ function Layer2MappingInner() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [editIdx, setEditIdx]   = useState<number | null>(null);
   const [panelRow, setPanelRow] = useState<Layer2Row>(newLayer2Row());
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const draftKey = submissionId ? `bu_air_layer2_draft_${submissionId}` : "bu_air_layer2_draft";
 
@@ -482,7 +483,7 @@ function Layer2MappingInner() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#f6f8fb" }}>
-                  {["#", "รายวิชา", "School / Industry + Competency", "AI Tool", "Integration Level", "Actions"].map((h, i) => (
+                  {["#", "รายวิชา", "School / Industry + Competency", "AI Tool", "Integration Level", ...(isReadOnly ? [] : ["Actions"])].map((h, i) => (
                     <th key={h} style={{ padding: "10px 12px", textAlign: i >= 3 ? "center" : "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6", width: i === 0 ? 40 : i === 4 ? 140 : i === 5 ? 80 : "auto" }}>{h}</th>
                   ))}
                 </tr>
@@ -492,15 +493,25 @@ function Layer2MappingInner() {
                   const sCfg = row.sector ? SECTOR_CFG[row.sector as keyof typeof SECTOR_CFG] : null;
                   const levels = [row.freeZone, row.consulted, row.assisted, row.generated];
                   const levelLabels = ["FZ","C","A","G"];
+                  const isExpanded = expandedIdx === idx;
+                  const hasDetail = !!(row.aiUsage || row.embedMethod || row.notes);
                   return (
-                    <tr key={row.id}
-                      style={{ borderBottom: "1px solid #f4f6fa", cursor: "pointer", transition: "background 0.1s" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "#fafbfd"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
-                      onClick={() => openEdit(idx)}
+                    <React.Fragment key={row.id}>
+                    <tr
+                      style={{ borderBottom: isExpanded ? "none" : "1px solid #f4f6fa", cursor: "pointer", transition: "background 0.1s", background: isExpanded ? "#f6f8fb" : "transparent" }}
+                      onMouseEnter={(e) => { if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "#fafbfd"; }}
+                      onMouseLeave={(e) => { if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
+                      onClick={() => setExpandedIdx(isExpanded ? null : idx)}
                     >
                       <td style={{ padding: "12px 12px", color: "#8b99a8", fontWeight: 700, fontSize: 12, fontFamily: "var(--font-ibm-plex), monospace" }}>
-                        {String(idx + 1).padStart(2, "0")}
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          <span>{String(idx + 1).padStart(2, "0")}</span>
+                          {hasDetail && (
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isExpanded ? "#1a4f8a" : "#b9c3cf"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}>
+                              <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: "12px 12px" }}>
                         <div style={{ fontWeight: 600, color: "#14202e" }}>{row.courseName || <span style={{ color: "#b9c3cf" }}>ยังไม่ระบุ</span>}</div>
@@ -540,13 +551,47 @@ function Layer2MappingInner() {
                           ))}
                         </div>
                       </td>
-                      <td style={{ padding: "12px 12px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                      {!isReadOnly && (
+                        <td style={{ padding: "12px 12px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                             <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }}><EditIcon /></button>
                             <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }}><TrashIcon /></button>
-                        </div>
-                      </td>
+                          </div>
+                        </td>
+                      )}
                     </tr>
+                    {isExpanded && (
+                      <tr style={{ borderBottom: "1px solid #eef1f6" }}>
+                        <td colSpan={isReadOnly ? 5 : 6} style={{ padding: 0 }}>
+                          <div style={{ background: "#f6f8fb", borderTop: "1px solid #eef1f6", padding: "14px 16px 16px 48px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการ embed AI ในรายวิชา</div>
+                                <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.embedMethod || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
+                              </div>
+                              <div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการใช้ AI Tool ในรายวิชา</div>
+                                <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.aiUsage || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
+                              </div>
+                              {row.notes && (
+                                <div style={{ gridColumn: "1 / -1" }}>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>หมายเหตุ</div>
+                                  <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.notes}</div>
+                                </div>
+                              )}
+                              {row.freeZone && (
+                                <div>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#6d28d9", background: "#ede9fe", border: "1px solid #c4b5fd", borderRadius: 99, padding: "2px 10px" }}>
+                                    Free Zone
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

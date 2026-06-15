@@ -262,7 +262,21 @@ export default function SubmitPage() {
           </div>
         )}
 
-        <div style={{ textAlign: "center", fontSize: 12, color: "#8b99a8", marginTop: 28 }}>
+        {/* AI Readiness card */}
+        <a href="/submit/faculty-readiness" style={{ textDecoration:"none", display:"block", marginTop:28 }}>
+          <div style={{ background:"linear-gradient(135deg,#eef4fb 0%,#e6f4ec 100%)", border:"1px solid #b3d4f5", borderRadius:12, padding:"18px 22px", display:"flex", alignItems:"center", gap:16, cursor:"pointer" }}>
+            <div style={{ width:42, height:42, borderRadius:10, background:"#1a4f8a", display:"grid", placeItems:"center", flexShrink:0 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontWeight:700, fontSize:14, color:"#14202e" }}>AI Readiness ของคณะ</div>
+              <div style={{ fontSize:12, color:"#677889", marginTop:2 }}>ดูสถานะความพร้อม AI ของอาจารย์ในคณะ Development Path และ Support needs</div>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#677889" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </a>
+
+        <div style={{ textAlign: "center", fontSize: 12, color: "#8b99a8", marginTop: 20 }}>
           ระบบบริหารหลักสูตร AI-Ready · มหาวิทยาลัยกรุงเทพ
         </div>
       </main>
