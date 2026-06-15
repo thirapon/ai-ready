@@ -797,7 +797,7 @@ export default function FacultyReadinessPage() {
       router.replace("/login"); return;
     }
 
-    fetch("/api/faculty-readiness")
+    fetch("/api/faculty-readiness/refresh")
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(d => { setLiveData(d.rows ?? []); setFetchedAt(d.fetchedAt ?? null); })
       .catch(() => setFetchError(true));
