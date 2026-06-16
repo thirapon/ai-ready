@@ -501,7 +501,7 @@ function Layer2MappingInner() {
                       style={{ borderBottom: isExpanded ? "none" : "1px solid #f4f6fa", cursor: "pointer", transition: "background 0.1s", background: isExpanded ? "#f6f8fb" : "transparent" }}
                       onMouseEnter={(e) => { if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "#fafbfd"; }}
                       onMouseLeave={(e) => { if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "transparent"; }}
-                      onClick={() => setExpandedSet(prev => { const s = new Set(prev); isExpanded ? s.delete(idx) : s.add(idx); return s; })}
+                      onClick={() => setExpandedSet(prev => { const s = new Set(prev); if (isExpanded) { s.delete(idx); } else { s.add(idx); } return s; })}
                     >
                       <td style={{ padding: "12px 12px", color: "#8b99a8", fontWeight: 700, fontSize: 12, fontFamily: "var(--font-ibm-plex), monospace" }}>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
