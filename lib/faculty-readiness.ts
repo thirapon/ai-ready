@@ -47,6 +47,7 @@ export interface FRRow {
   path: "AI Aware" | "AI Integrator" | "AI Champion";
   sup: boolean;
   qb: string;
+  qc: string;
 }
 
 export async function fetchFacultyReadiness(): Promise<FRRow[]> {
@@ -76,5 +77,6 @@ export async function fetchFacultyReadiness(): Promise<FRRow[]> {
       path:  parsePath(r[14]),
       sup:   String(r[15] ?? "").includes("support"),
       qb:    String(r[17] ?? "").trim(),
+      qc:    String(r[18] ?? "").trim(),
     }));
 }

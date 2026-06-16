@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import { Topbar } from "@/components/app/Topbar";
@@ -11,7 +11,7 @@ interface FRRow {
   d1: number; d2: number; d3: number; d4: number;
   score: number; q14: number;
   path: "AI Aware" | "AI Integrator" | "AI Champion";
-  sup: boolean; qb: string;
+  sup: boolean; qb: string; qc: string;
 }
 interface DimAvgs { d1: number; d2: number; d3: number; d4: number; }
 interface Stats {
@@ -36,16 +36,6 @@ const DIM_META: DimMeta[] = [
   { key:"d4", label:"Attitude",           short:"Attitude",   weight:20, color:"#b6620e" },
 ];
 
-const NEED_PATTERNS = [
-  { key:"lesson",   label:"Lesson Plan & Rubric",       keywords:["lesson plan","rubric"] },
-  { key:"workshop", label:"Workshop / Hands-on Tools",  keywords:["workshop","hands-on"] },
-  { key:"ethics",   label:"ความรู้พื้นฐาน AI Ethics",    keywords:["ai ethics","ethics ก่อน"] },
-  { key:"peer",     label:"เพื่อน / ทีม AI",             keywords:["เพื่อนร่วมทีม"] },
-  { key:"example",  label:"ตัวอย่างสอน AI Non-CS",       keywords:["ตัวอย่างการสอน","ไม่ใช่ cs"] },
-  { key:"time",     label:"ต้องการเวลาเพิ่ม",             keywords:["เวลาเพิ่ม"] },
-  { key:"ready",    label:"พร้อมเริ่มได้ทันที",           keywords:["materials พร้อม","เริ่มได้ทันที"] },
-];
-const NEED_COLORS = ["#1a4f8a","#2d6cb0","#4880c0","#6a3eb5","#137a4a","#b6620e","#677889"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function frStats(rows: FRRow[]): Stats {
@@ -311,41 +301,32 @@ function UrgencyMatrix({ rows }: { rows: FRRow[] }) {
   );
 }
 
-// ─── Top Needs ────────────────────────────────────────────────────────────────
-function TopNeeds({ rows }: { rows: FRRow[] }) {
-  const items = useMemo(() => {
-    return NEED_PATTERNS.map(p => {
-      const count = rows.filter(r => {
-        const t = (r.qb || "").toLowerCase();
-        return p.keywords.some(k => t.includes(k.toLowerCase()));
-      }).length;
-      return { ...p, count, pct: rows.length ? Math.round(count/rows.length*100) : 0 };
-    }).sort((a,b) => b.count - a.count).filter(n => n.count > 0);
-  }, [rows]);
-  const maxCount = items[0]?.count || 1;
+// ─── Expand Detail ────────────────────────────────────────────────────────────
+function ExpandDetail({ r, colSpan }: { r: FRRow; colSpan: number }) {
   return (
-    <div style={{ padding:"14px 22px 18px", display:"flex", flexDirection:"column", gap:13 }}>
-      {items.map((n, i) => (
-        <div key={n.key}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:5, gap:8 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ fontFamily:"'IBM Plex Sans',sans-serif", fontSize:11, fontWeight:700, color:"white", background:NEED_COLORS[i]||"#677889", borderRadius:4, padding:"2px 7px", minWidth:18, textAlign:"center" }}>{i+1}</span>
-              <span style={{ fontSize:13, color:"var(--ink-900)", fontWeight:i<3?"600":"400" }}>{n.label}</span>
+    <tr>
+      <td colSpan={colSpan} style={{ padding: 0, borderBottom: "1px solid #eef1f6" }}>
+        <div style={{ background: "#f6f8fb", borderTop: "1px solid #eef1f6", padding: "14px 16px 16px 40px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#677889", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>ข. สิ่งที่ต้องการก่อนเริ่มสอน AI</div>
+              <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{r.qb || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
             </div>
-            <span style={{ fontFamily:"'IBM Plex Sans',sans-serif", fontSize:12.5, fontWeight:700, color:NEED_COLORS[i]||"#677889", whiteSpace:"nowrap" }}>{n.count}/{rows.length} คน</span>
-          </div>
-          <div style={{ height:9, background:"var(--ink-100)", borderRadius:5, overflow:"hidden" }}>
-            <div style={{ width:`${(n.count/maxCount*100)}%`, height:"100%", background:NEED_COLORS[i]||"#677889", borderRadius:5, opacity:i===0?1:0.75 }}/>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#677889", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5 }}>ค. ข้อกังวล / ข้อเสนอแนะ</div>
+              <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{r.qc || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
+            </div>
           </div>
         </div>
-      ))}
-    </div>
+      </td>
+    </tr>
   );
 }
 
 // ─── Support Table ────────────────────────────────────────────────────────────
 function FRSupportTable({ rows }: { rows: FRRow[] }) {
   const sup = useMemo(() => rows.filter(r => r.sup || r.q14 >= 4).sort((a,b) => b.q14 - a.q14), [rows]);
+  const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
   if (!sup.length) return <div style={{ padding:"24px", textAlign:"center", color:"var(--ink-400)", fontSize:13 }}>ไม่มีอาจารย์ที่ต้องการ support พิเศษ</div>;
   return (
     <div className="fr-tbl-wrap">
@@ -357,27 +338,35 @@ function FRSupportTable({ rows }: { rows: FRRow[] }) {
             <th>Path</th>
             <th style={{ width:120 }}>คะแนนรวม</th>
             <th style={{ width:90 }}>Q14</th>
-            <th>ความต้องการ Support</th>
           </tr>
         </thead>
         <tbody>
-          {sup.map(r => (
-            <tr key={r.id} className={r.q14 >= 5 ? "fr-row--high" : ""}>
-              <td>
-                <div style={{ fontWeight:600, color:"var(--ink-900)" }}>{r.name}</div>
-                <div style={{ fontSize:11, color:"var(--ink-400)" }}>{r.id}</div>
-              </td>
-              <td><div style={{ fontSize:12 }}>{r.dept}</div></td>
-              <td><PathBadge path={r.path} /></td>
-              <td><ScoreMiniBar score={r.score} /></td>
-              <td>
-                <div className={`fr-q14 fr-q14--${Math.min(r.q14, 5)}`}>
-                  {"●".repeat(r.q14)}{"○".repeat(5 - r.q14)}<span>{r.q14}/5</span>
-                </div>
-              </td>
-              <td style={{ fontSize:12, color:"var(--ink-700)", maxWidth:240 }}>{r.qb}</td>
-            </tr>
-          ))}
+          {sup.map(r => {
+            const isExp = expandedSet.has(r.id);
+            return (
+              <React.Fragment key={r.id}>
+                <tr
+                  className={r.q14 >= 5 ? "fr-row--high" : ""}
+                  style={{ cursor: "pointer", background: isExp ? "#f6f8fb" : undefined }}
+                  onClick={() => setExpandedSet(prev => { const s = new Set(prev); if (isExp) { s.delete(r.id); } else { s.add(r.id); } return s; })}
+                >
+                  <td>
+                    <div style={{ fontWeight:600, color:"var(--ink-900)" }}>{r.name}</div>
+                    <div style={{ fontSize:11, color:"var(--ink-400)" }}>{r.id}</div>
+                  </td>
+                  <td><div style={{ fontSize:12 }}>{r.dept}</div></td>
+                  <td><PathBadge path={r.path} /></td>
+                  <td><ScoreMiniBar score={r.score} /></td>
+                  <td>
+                    <div className={`fr-q14 fr-q14--${Math.min(r.q14, 5)}`}>
+                      {"●".repeat(r.q14)}{"○".repeat(5 - r.q14)}<span>{r.q14}/5</span>
+                    </div>
+                  </td>
+                </tr>
+                {isExp && <ExpandDetail r={r} colSpan={5} />}
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -389,6 +378,7 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof FRRow>("score");
   const [sortDir, setSortDir] = useState(-1);
+  const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
 
   const sorted = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -433,23 +423,32 @@ function FRRosterTable({ rows }: { rows: FRRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map(r => (
-              <tr key={r.id}>
-                <td>
-                  <div style={{ fontWeight:600, color:"var(--ink-900)", fontSize:13 }}>{r.name}</div>
-                  <div style={{ fontSize:11, color:"var(--ink-400)" }}>{r.id}</div>
-                </td>
-                <td style={{ fontSize:12 }}>{r.dept}</td>
-                <td><PathBadge path={r.path} /></td>
-                <td><ScoreMiniBar score={r.score} /></td>
-                {(["d1","d2","d3","d4"] as const).map(k => (
-                  <td key={k} style={{ fontFamily:"'IBM Plex Sans',sans-serif", fontSize:12, textAlign:"center", color:r[k]>=4?"#137a4a":r[k]>=2.5?"#1a4f8a":"#a86a14", fontWeight:600 }}>
-                    {r[k].toFixed(1)}
-                  </td>
-                ))}
-                <td>{r.sup && <SupportBadge />}</td>
-              </tr>
-            ))}
+            {sorted.map(r => {
+              const isExp = expandedSet.has(r.id);
+              return (
+                <React.Fragment key={r.id}>
+                  <tr
+                    style={{ cursor: "pointer", background: isExp ? "#f6f8fb" : undefined }}
+                    onClick={() => setExpandedSet(prev => { const s = new Set(prev); if (isExp) { s.delete(r.id); } else { s.add(r.id); } return s; })}
+                  >
+                    <td>
+                      <div style={{ fontWeight:600, color:"var(--ink-900)", fontSize:13 }}>{r.name}</div>
+                      <div style={{ fontSize:11, color:"var(--ink-400)" }}>{r.id}</div>
+                    </td>
+                    <td style={{ fontSize:12 }}>{r.dept}</td>
+                    <td><PathBadge path={r.path} /></td>
+                    <td><ScoreMiniBar score={r.score} /></td>
+                    {(["d1","d2","d3","d4"] as const).map(k => (
+                      <td key={k} style={{ fontFamily:"'IBM Plex Sans',sans-serif", fontSize:12, textAlign:"center", color:r[k]>=4?"#137a4a":r[k]>=2.5?"#1a4f8a":"#a86a14", fontWeight:600 }}>
+                        {r[k].toFixed(1)}
+                      </td>
+                    ))}
+                    <td>{r.sup && <SupportBadge />}</td>
+                  </tr>
+                  {isExp && <ExpandDetail r={r} colSpan={9} />}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -541,13 +540,6 @@ function FacultyOwnDashboard({ rows, allRows, facultyName }: { rows: FRRow[]; al
                 <DimBars dimAvgs={displayStats.dimAvgs} compareAvgs={uniStats.dimAvgs} />
               </div>
             </div>
-          </div>
-          <div className="fr-card">
-            <div className="fr-card__head">
-              <div className="fr-card__title">Top Needs — สิ่งที่อาจารย์ต้องการ</div>
-              <div className="fr-card__sub">วิเคราะห์จากคำตอบเปิด · {filteredRows.length} คน</div>
-            </div>
-            <TopNeeds rows={filteredRows} />
           </div>
         </div>
 
