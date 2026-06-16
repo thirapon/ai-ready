@@ -520,25 +520,23 @@ function FacultyOwnDashboard({ rows, allRows, facultyName }: { rows: FRRow[]; al
         </div>
 
         {/* Charts 2-col */}
-        <div className="fr-charts-2col">
-          <div className="fr-charts-left">
-            <div className="fr-card">
-              <div className="fr-card__head">
-                <div className="fr-card__title">Development Path</div>
-                <div className="fr-card__sub">อาจารย์ในคณะ</div>
-              </div>
-              <div style={{ padding:"12px 16px 16px" }}>
-                <DonutChart champion={displayStats.champion} integrator={displayStats.integrator} aware={displayStats.aware} total={displayStats.total} />
-              </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="fr-card">
+            <div className="fr-card__head">
+              <div className="fr-card__title">Development Path</div>
+              <div className="fr-card__sub">อาจารย์ในคณะ</div>
             </div>
-            <div className="fr-card">
-              <div className="fr-card__head">
-                <div className="fr-card__title">คะแนนรายมิติ</div>
-                <div className="fr-card__sub">เส้นเทา = ค่าเฉลี่ยมหาวิทยาลัย · K·20% E·25% T·35% A·20%</div>
-              </div>
-              <div style={{ padding:"8px 16px 16px" }}>
-                <DimBars dimAvgs={displayStats.dimAvgs} compareAvgs={uniStats.dimAvgs} />
-              </div>
+            <div style={{ padding:"12px 16px 16px" }}>
+              <DonutChart champion={displayStats.champion} integrator={displayStats.integrator} aware={displayStats.aware} total={displayStats.total} />
+            </div>
+          </div>
+          <div className="fr-card">
+            <div className="fr-card__head">
+              <div className="fr-card__title">คะแนนรายมิติ</div>
+              <div className="fr-card__sub">เส้นเทา = ค่าเฉลี่ยมหาวิทยาลัย · K·20% E·25% T·35% A·20%</div>
+            </div>
+            <div style={{ padding:"8px 16px 16px" }}>
+              <DimBars dimAvgs={displayStats.dimAvgs} compareAvgs={uniStats.dimAvgs} />
             </div>
           </div>
         </div>
