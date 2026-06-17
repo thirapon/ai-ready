@@ -172,6 +172,21 @@ function CurriculumCard({ sub, onAction }: { sub: Submission; onAction: (sub: Su
             L2 · ทำ L1 ก่อน
           </span>
         )}
+
+        {/* Step 4: Download PDF report — once L1 has data */}
+        {approved && l1Has && (
+          <a
+            href={`/submit/print?id=${sub.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hcard__btn hcard__btn--ghost"
+            style={{ fontSize: 13, textDecoration: "none", marginLeft: "auto" }}
+            title="พิมพ์หรือดาวน์โหลดรายงานหลักสูตรเป็น PDF"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            ดาวน์โหลด PDF
+          </a>
+        )}
       </div>
     </div>
   );
