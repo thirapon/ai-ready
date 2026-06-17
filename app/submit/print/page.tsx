@@ -176,7 +176,13 @@ function PrintInner() {
 
   const fd = data.formData ?? {};
   const program = data.programName || fd.program || "—";
-  const comps = Array.isArray(fd.competencies) ? fd.competencies : [];
+  // Sort competencies by year (earliest year first); ties keep original order.
+  const minYear = (c: Competency) =>
+    Array.isArray(c.years) && c.years.length > 0 ? Math.min(...c.years) : 99;
+  const comps = (Array.isArray(fd.competencies) ? fd.competencies : [])
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => minYear(a.c) - minYear(b.c) || a.i - b.i)
+    .map((x) => x.c);
   const sectors = Array.isArray(fd.sectors) ? fd.sectors : [];
 
   return (
