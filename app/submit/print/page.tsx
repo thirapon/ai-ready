@@ -81,6 +81,104 @@ function SectionTitle({ no, children }: { no: number; children: React.ReactNode 
   );
 }
 
+// ─── Course ↔ Competency map (static bipartite diagram for print) ─────────────
+const truncTH = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+function buildCourseMap(rows: MappingRow[]) {
+  const PAD_TOP = 40, C_H = 42, C_GAP = 11, R_H = 46, R_GAP = 13;
+
+  const courseOrder: string[] = [];
+  const courseMeta = new Map<string, { code: string; name: string; year: string }>();
+  const compOrder: string[] = [];
+  const compMeta = new Map<string, { dim: string; comp: string }>();
+  const edges: { ckey: string; pkey: string; color: string }[] = [];
+
+  rows.forEach((r) => {
+    const ckey = (r.courseCode || r.courseName || "").trim();
+    if (!ckey || !r.competency) return;
+    const pkey = `${r.dimension}||${r.competency}`;
+    if (!courseMeta.has(ckey)) { courseMeta.set(ckey, { code: r.courseCode, name: r.courseName, year: r.year }); courseOrder.push(ckey); }
+    if (!compMeta.has(pkey)) { compMeta.set(pkey, { dim: r.dimension, comp: r.competency }); compOrder.push(pkey); }
+    const color = getDimension(r.dimension)?.color ?? "#8b99a8";
+    if (!edges.some((e) => e.ckey === ckey && e.pkey === pkey)) edges.push({ ckey, pkey, color });
+  });
+
+  const coursePos = new Map<string, { y: number; cy: number }>();
+  courseOrder.forEach((k, i) => { const y = PAD_TOP + i * (C_H + C_GAP); coursePos.set(k, { y, cy: y + C_H / 2 }); });
+  const leftBottom = courseOrder.length ? PAD_TOP + courseOrder.length * (C_H + C_GAP) - C_GAP : PAD_TOP;
+
+  // Position each competency near the average y of the courses it links to,
+  // then push down to resolve overlaps (top-down).
+  const centroid = (pkey: string, fallbackIdx: number) => {
+    const ys = edges.filter((e) => e.pkey === pkey).map((e) => coursePos.get(e.ckey)!.cy);
+    return ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : PAD_TOP + fallbackIdx * (R_H + R_GAP) + R_H / 2;
+  };
+  const sorted = compOrder.map((pkey, i) => ({ pkey, c: centroid(pkey, i) })).sort((a, b) => a.c - b.c);
+  const compPos = new Map<string, { y: number; cy: number }>();
+  let prevBottom = PAD_TOP - R_GAP;
+  sorted.forEach(({ pkey, c }) => {
+    const top = Math.max(c - R_H / 2, prevBottom + R_GAP, PAD_TOP);
+    compPos.set(pkey, { y: top, cy: top + R_H / 2 });
+    prevBottom = top + R_H;
+  });
+  const rightBottom = compOrder.length ? prevBottom : PAD_TOP;
+
+  const H = Math.max(leftBottom, rightBottom) + 22;
+  return { courseOrder, courseMeta, coursePos, compOrder, compMeta, compPos, edges, H, C_H, R_H };
+}
+
+function CourseCompetencyMap({ rows }: { rows: MappingRow[] }) {
+  const m = buildCourseMap(rows);
+  if (m.courseOrder.length === 0 || m.compOrder.length === 0) {
+    return <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่มีข้อมูลเพียงพอสำหรับสร้างแผนที่ —</div>;
+  }
+  const W = 700, LX = 4, LW = 300, RX = 400, RW = 296;
+  return (
+    <svg viewBox={`0 0 ${W} ${m.H}`} style={{ width: "100%", display: "block" }} role="img">
+      <text x={LX + LW / 2} y={28} textAnchor="middle" fontSize={11} fontWeight={700} fill="#8b99a8" letterSpacing="1">รายวิชา</text>
+      <text x={RX + RW / 2} y={28} textAnchor="middle" fontSize={11} fontWeight={700} fill="#8b99a8" letterSpacing="1">COMPETENCY (UNESCO)</text>
+
+      {/* edges */}
+      {m.edges.map((e, i) => {
+        const cp = m.coursePos.get(e.ckey)!;
+        const pp = m.compPos.get(e.pkey)!;
+        return <path key={i} d={`M ${LX + LW} ${cp.cy} C ${LX + LW + 44} ${cp.cy}, ${RX - 44} ${pp.cy}, ${RX} ${pp.cy}`} fill="none" stroke={e.color} strokeWidth={1.6} opacity={0.55} />;
+      })}
+
+      {/* course nodes (left) */}
+      {m.courseOrder.map((k) => {
+        const c = m.courseMeta.get(k)!;
+        const p = m.coursePos.get(k)!;
+        return (
+          <g key={k}>
+            <rect x={LX} y={p.y} width={LW} height={m.C_H} rx={8} fill="#f6f8fb" stroke="#dde3eb" />
+            <text x={LX + 13} y={p.y + 18} fontSize={11.5} fontWeight={700} fill="#14202e">{truncTH(c.code || "—", 14)}{c.year ? ` · ปีที่ ${c.year}` : ""}</text>
+            <text x={LX + 13} y={p.y + 33} fontSize={11} fill="#677889">{truncTH(c.name || "ยังไม่ระบุ", 38)}</text>
+          </g>
+        );
+      })}
+
+      {/* competency nodes (right) */}
+      {m.compOrder.map((k) => {
+        const meta = m.compMeta.get(k)!;
+        const p = m.compPos.get(k)!;
+        const dim = getDimension(meta.dim);
+        const comp = getCompetency(meta.comp);
+        const color = dim?.color ?? "#677889";
+        const bg = dim?.bg ?? "#f6f8fb";
+        const border = dim?.border ?? "#dde3eb";
+        return (
+          <g key={k}>
+            <rect x={RX} y={p.y} width={RW} height={m.R_H} rx={8} fill={bg} stroke={border} />
+            <text x={RX + 13} y={p.y + 19} fontSize={11.5} fontWeight={700} fill={color}>{truncTH(dim?.label ?? "—", 34)}</text>
+            <text x={RX + 13} y={p.y + 34} fontSize={10.5} fill={color} opacity={0.78}>{comp ? `${comp.level === "apply" ? "Apply" : "Create"}: ${truncTH(comp.label, 30)}` : ""}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 const TH = ({ children, w, center }: { children?: React.ReactNode; w?: number; center?: boolean }) => (
   <th style={{ padding: "7px 9px", textAlign: center ? "center" : "left", fontWeight: 700, color: "#3a4859", fontSize: 11, borderBottom: "1.5px solid #dde3eb", background: "#f6f8fb", width: w }}>{children}</th>
 );
@@ -324,9 +422,18 @@ function PrintInner() {
           )}
         </div>
 
-        {/* ── Section 3: Layer 1 — UNESCO mapping ── */}
+        {/* ── Section 3: Course ↔ Competency map ── */}
         <div className="print-section">
-          <SectionTitle no={3}>Layer 1 · การแมพสู่มาตรฐาน UNESCO <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({l1.length} รายวิชา)</span></SectionTitle>
+          <SectionTitle no={3}>แผนที่เชื่อมโยงรายวิชา ↔ Competency</SectionTitle>
+          <div style={{ fontSize: 11.5, color: "#677889", marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
+            เส้นเชื่อมแสดงว่าแต่ละรายวิชาพัฒนา competency ตามกรอบ UNESCO ด้านใด (สีของเส้นตามมิติ)
+          </div>
+          <CourseCompetencyMap rows={l1} />
+        </div>
+
+        {/* ── Section 4: Layer 1 — UNESCO mapping ── */}
+        <div className="print-section">
+          <SectionTitle no={4}>Layer 1 · การแมพสู่มาตรฐาน UNESCO <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({l1.length} รายวิชา)</span></SectionTitle>
           {l1.length === 0 ? (
             <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่ได้แมพ Layer 1 —</div>
           ) : (
@@ -378,9 +485,9 @@ function PrintInner() {
           )}
         </div>
 
-        {/* ── Section 4: Layer 2 — School & Industry ── */}
+        {/* ── Section 5: Layer 2 — School & Industry ── */}
         <div className="print-section">
-          <SectionTitle no={4}>Layer 2 · School &amp; Industry Mapping <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({l2.length} รายวิชา)</span></SectionTitle>
+          <SectionTitle no={5}>Layer 2 · School &amp; Industry Mapping <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({l2.length} รายวิชา)</span></SectionTitle>
           {l2.length === 0 ? (
             <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่ได้แมพ Layer 2 —</div>
           ) : (
@@ -427,7 +534,7 @@ function PrintInner() {
 
         {/* ── Section 5: Recommended AI tools ── */}
         <div className="print-section">
-          <SectionTitle no={5}>AI Tools ที่ใช้ในหลักสูตร <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({totalTools} เครื่องมือ)</span></SectionTitle>
+          <SectionTitle no={6}>AI Tools ที่ใช้ในหลักสูตร <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({totalTools} เครื่องมือ)</span></SectionTitle>
           {totalTools === 0 ? (
             <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่ได้ระบุ AI Tool —</div>
           ) : (
