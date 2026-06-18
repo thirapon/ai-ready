@@ -306,9 +306,12 @@ function PrintInner() {
           .print-root { background: white; padding: 0; }
           .print-toolbar { display: none !important; }
           .print-sheet { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
-          .print-section { break-inside: avoid; }
+          /* Sections may span pages — only keep individual rows/cards intact.
+             (break-inside:avoid on a section taller than one page makes some
+             print engines push it to a new page and clip it, hiding content.) */
           .print-table tr { break-inside: avoid; }
           .print-comp-card { break-inside: avoid; }
+          .print-section > svg { break-inside: avoid; }
           h2 { break-after: avoid; }
         }
         @page { size: A4; margin: 14mm 12mm; }
