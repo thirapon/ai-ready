@@ -84,23 +84,49 @@ function SectionTitle({ no, children }: { no: number; children: React.ReactNode 
 // ─── Course ↔ Competency map (static bipartite diagram for print) ─────────────
 const truncTH = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
-function buildCourseMap(rows: MappingRow[]) {
+interface MapCourse { courseCode: string; courseName: string; year: string }
+interface CompDesc { key: string; title: string; sub: string; color: string; bg: string; border: string }
+
+// Layer 1: competency keyed by UNESCO dimension + competency.
+const l1CompOf = (r: MappingRow): CompDesc | null => {
+  if (!r.competency) return null;
+  const dim = getDimension(r.dimension);
+  const comp = getCompetency(r.competency);
+  return {
+    key: `${r.dimension}||${r.competency}`,
+    title: dim?.label ?? "—",
+    sub: comp ? `${comp.level === "apply" ? "Apply" : "Create"}: ${comp.label}` : "",
+    color: dim?.color ?? "#677889", bg: dim?.bg ?? "#f6f8fb", border: dim?.border ?? "#dde3eb",
+  };
+};
+
+// Layer 2: free-text competency, colored by sector (School / Industry).
+const SECTOR_CFG: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  school:   { color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4", label: "School" },
+  industry: { color: "#6d28d9", bg: "#f5f3ff", border: "#ddd6fe", label: "Industry" },
+};
+const l2CompOf = (r: Layer2Row): CompDesc | null => {
+  if (!r.competency) return null;
+  const cfg = SECTOR_CFG[r.sector] ?? { color: "#677889", bg: "#f6f8fb", border: "#dde3eb", label: "" };
+  return { key: `${r.sector}||${r.competency}`, title: r.competency, sub: cfg.label, color: cfg.color, bg: cfg.bg, border: cfg.border };
+};
+
+function buildMap<T extends MapCourse>(rows: T[], compOf: (r: T) => CompDesc | null) {
   const PAD_TOP = 40, C_H = 42, C_GAP = 11, R_H = 46, R_GAP = 13;
 
   const courseOrder: string[] = [];
-  const courseMeta = new Map<string, { code: string; name: string; year: string }>();
+  const courseMeta = new Map<string, MapCourse>();
   const compOrder: string[] = [];
-  const compMeta = new Map<string, { dim: string; comp: string }>();
+  const compMeta = new Map<string, CompDesc>();
   const edges: { ckey: string; pkey: string; color: string }[] = [];
 
   rows.forEach((r) => {
     const ckey = (r.courseCode || r.courseName || "").trim();
-    if (!ckey || !r.competency) return;
-    const pkey = `${r.dimension}||${r.competency}`;
-    if (!courseMeta.has(ckey)) { courseMeta.set(ckey, { code: r.courseCode, name: r.courseName, year: r.year }); courseOrder.push(ckey); }
-    if (!compMeta.has(pkey)) { compMeta.set(pkey, { dim: r.dimension, comp: r.competency }); compOrder.push(pkey); }
-    const color = getDimension(r.dimension)?.color ?? "#8b99a8";
-    if (!edges.some((e) => e.ckey === ckey && e.pkey === pkey)) edges.push({ ckey, pkey, color });
+    const desc = compOf(r);
+    if (!ckey || !desc) return;
+    if (!courseMeta.has(ckey)) { courseMeta.set(ckey, { courseCode: r.courseCode, courseName: r.courseName, year: r.year }); courseOrder.push(ckey); }
+    if (!compMeta.has(desc.key)) { compMeta.set(desc.key, desc); compOrder.push(desc.key); }
+    if (!edges.some((e) => e.ckey === ckey && e.pkey === desc.key)) edges.push({ ckey, pkey: desc.key, color: desc.color });
   });
 
   const coursePos = new Map<string, { y: number; cy: number }>();
@@ -127,8 +153,8 @@ function buildCourseMap(rows: MappingRow[]) {
   return { courseOrder, courseMeta, coursePos, compOrder, compMeta, compPos, edges, H, C_H, R_H };
 }
 
-function CourseCompetencyMap({ rows }: { rows: MappingRow[] }) {
-  const m = buildCourseMap(rows);
+function CourseCompetencyMap<T extends MapCourse>({ rows, compOf, rightLabel }: { rows: T[]; compOf: (r: T) => CompDesc | null; rightLabel: string }) {
+  const m = buildMap(rows, compOf);
   if (m.courseOrder.length === 0 || m.compOrder.length === 0) {
     return <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่มีข้อมูลเพียงพอสำหรับสร้างแผนที่ —</div>;
   }
@@ -136,7 +162,7 @@ function CourseCompetencyMap({ rows }: { rows: MappingRow[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${m.H}`} style={{ width: "100%", display: "block" }} role="img">
       <text x={LX + LW / 2} y={28} textAnchor="middle" fontSize={11} fontWeight={700} fill="#8b99a8" letterSpacing="1">รายวิชา</text>
-      <text x={RX + RW / 2} y={28} textAnchor="middle" fontSize={11} fontWeight={700} fill="#8b99a8" letterSpacing="1">COMPETENCY (UNESCO)</text>
+      <text x={RX + RW / 2} y={28} textAnchor="middle" fontSize={11} fontWeight={700} fill="#8b99a8" letterSpacing="1">{rightLabel}</text>
 
       {/* edges */}
       {m.edges.map((e, i) => {
@@ -152,26 +178,21 @@ function CourseCompetencyMap({ rows }: { rows: MappingRow[] }) {
         return (
           <g key={k}>
             <rect x={LX} y={p.y} width={LW} height={m.C_H} rx={8} fill="#f6f8fb" stroke="#dde3eb" />
-            <text x={LX + 13} y={p.y + 18} fontSize={11.5} fontWeight={700} fill="#14202e">{truncTH(c.code || "—", 14)}{c.year ? ` · ปีที่ ${c.year}` : ""}</text>
-            <text x={LX + 13} y={p.y + 33} fontSize={11} fill="#677889">{truncTH(c.name || "ยังไม่ระบุ", 38)}</text>
+            <text x={LX + 13} y={p.y + 18} fontSize={11.5} fontWeight={700} fill="#14202e">{truncTH(c.courseCode || "—", 14)}{c.year ? ` · ปีที่ ${c.year}` : ""}</text>
+            <text x={LX + 13} y={p.y + 33} fontSize={11} fill="#677889">{truncTH(c.courseName || "ยังไม่ระบุ", 38)}</text>
           </g>
         );
       })}
 
       {/* competency nodes (right) */}
       {m.compOrder.map((k) => {
-        const meta = m.compMeta.get(k)!;
+        const d = m.compMeta.get(k)!;
         const p = m.compPos.get(k)!;
-        const dim = getDimension(meta.dim);
-        const comp = getCompetency(meta.comp);
-        const color = dim?.color ?? "#677889";
-        const bg = dim?.bg ?? "#f6f8fb";
-        const border = dim?.border ?? "#dde3eb";
         return (
           <g key={k}>
-            <rect x={RX} y={p.y} width={RW} height={m.R_H} rx={8} fill={bg} stroke={border} />
-            <text x={RX + 13} y={p.y + 19} fontSize={11.5} fontWeight={700} fill={color}>{truncTH(dim?.label ?? "—", 34)}</text>
-            <text x={RX + 13} y={p.y + 34} fontSize={10.5} fill={color} opacity={0.78}>{comp ? `${comp.level === "apply" ? "Apply" : "Create"}: ${truncTH(comp.label, 30)}` : ""}</text>
+            <rect x={RX} y={p.y} width={RW} height={m.R_H} rx={8} fill={d.bg} stroke={d.border} />
+            <text x={RX + 13} y={p.y + 19} fontSize={11.5} fontWeight={700} fill={d.color}>{truncTH(d.title || "—", 34)}</text>
+            <text x={RX + 13} y={p.y + 34} fontSize={10.5} fill={d.color} opacity={0.78}>{truncTH(d.sub, 36)}</text>
           </g>
         );
       })}
@@ -425,13 +446,18 @@ function PrintInner() {
           )}
         </div>
 
-        {/* ── Section 3: Course ↔ Competency map ── */}
+        {/* ── Section 3: Course ↔ Competency maps (Layer 1 + Layer 2) ── */}
         <div className="print-section">
           <SectionTitle no={3}>แผนที่เชื่อมโยงรายวิชา ↔ Competency</SectionTitle>
-          <div style={{ fontSize: 11.5, color: "#677889", marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
-            เส้นเชื่อมแสดงว่าแต่ละรายวิชาพัฒนา competency ตามกรอบ UNESCO ด้านใด (สีของเส้นตามมิติ)
+          <div style={{ fontSize: 11.5, color: "#677889", marginTop: -6, marginBottom: 16, lineHeight: 1.5 }}>
+            เส้นเชื่อมแสดงว่าแต่ละรายวิชาพัฒนา competency ใดบ้าง
           </div>
-          <CourseCompetencyMap rows={l1} />
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#1a4f8a", marginBottom: 4 }}>Layer 1 · ตามกรอบ UNESCO <span style={{ fontWeight: 400, color: "#8b99a8" }}>(สีของเส้นตามมิติ)</span></div>
+          <CourseCompetencyMap rows={l1} compOf={l1CompOf} rightLabel="COMPETENCY (UNESCO)" />
+
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#6d28d9", margin: "18px 0 4px" }}>Layer 2 · ตามภาคส่วน School &amp; Industry <span style={{ fontWeight: 400, color: "#8b99a8" }}>(สีของเส้นตามภาคส่วน)</span></div>
+          <CourseCompetencyMap rows={l2} compOf={l2CompOf} rightLabel="COMPETENCY (L2)" />
         </div>
 
         {/* ── Section 4: Layer 1 — UNESCO mapping ── */}
