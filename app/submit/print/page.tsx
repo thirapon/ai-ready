@@ -63,11 +63,14 @@ function levelChips(r: { freeZone?: boolean; consulted?: boolean; assisted?: boo
   );
 }
 
-function ToolTag({ name, type }: { name: string; type: string }) {
+function ToolTag({ name, type, count }: { name: string; type: string; count?: number }) {
   const cfg = TYPE_CFG[type] ?? { color: "#677889", bg: "#f6f8fb", border: "#dde3eb" };
   return (
-    <span style={{ display: "inline-block", padding: "2px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, marginRight: 5, marginBottom: 5 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 4px 2px 9px", borderRadius: 99, fontSize: 11, fontWeight: 600, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, marginRight: 5, marginBottom: 5 }}>
       {name}
+      {count != null && (
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 16, height: 16, padding: "0 4px", borderRadius: 99, background: cfg.color, color: "white", fontSize: 9.5, fontWeight: 700, fontFamily: "var(--font-ibm-plex), monospace" }}>{count}</span>
+      )}
     </span>
   );
 }
@@ -246,9 +249,11 @@ function PrintInner() {
   );
 
   // Aggregate unique AI tools across L1 + L2, grouped by toolType.
+  // count = number of mapping rows (courses) that reference the tool.
   const toolGroups = useMemo(() => {
-    const seen = new Map<string, string>(); // toolName(lower) → toolType
+    const seen = new Map<string, string>();    // toolName(lower) → toolType
     const display = new Map<string, string>(); // toolName(lower) → original
+    const count = new Map<string, number>();   // toolName(lower) → reference count
     const collect = (rows: { aiTool?: string; toolType?: string }[]) => {
       rows.forEach((r) => {
         if (!r.aiTool) return;
@@ -256,13 +261,15 @@ function PrintInner() {
           const key = t.toLowerCase();
           if (!seen.has(key)) { seen.set(key, r.toolType || ""); display.set(key, t); }
           else if (!seen.get(key) && r.toolType) { seen.set(key, r.toolType); }
+          count.set(key, (count.get(key) ?? 0) + 1);
         });
       });
     };
     collect(l1); collect(l2);
-    const groups: Record<string, string[]> = { essential: [], specialist: [], competitive: [], "": [] };
-    seen.forEach((type, key) => { (groups[type] ?? groups[""]).push(display.get(key)!); });
-    Object.values(groups).forEach((arr) => arr.sort((a, b) => a.localeCompare(b)));
+    const groups: Record<string, { name: string; count: number }[]> = { essential: [], specialist: [], competitive: [], "": [] };
+    seen.forEach((type, key) => { (groups[type] ?? groups[""]).push({ name: display.get(key)!, count: count.get(key) ?? 0 }); });
+    // Most-referenced first, then alphabetical.
+    Object.values(groups).forEach((arr) => arr.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)));
     return groups;
   }, [l1, l2]);
 
@@ -564,6 +571,11 @@ function PrintInner() {
         {/* ── Section 5: Recommended AI tools ── */}
         <div className="print-section">
           <SectionTitle no={6}>AI Tools ที่ใช้ในหลักสูตร <span style={{ fontWeight: 600, color: "#677889", fontSize: 13 }}>({totalTools} เครื่องมือ)</span></SectionTitle>
+          {totalTools > 0 && (
+            <div style={{ fontSize: 11.5, color: "#677889", marginTop: -6, marginBottom: 12, lineHeight: 1.5 }}>
+              ตัวเลขบน tag คือจำนวนรายวิชาที่อ้างถึงเครื่องมือนั้น (รวม Layer 1 + Layer 2)
+            </div>
+          )}
           {totalTools === 0 ? (
             <div style={{ fontSize: 12.5, color: "#b9c3cf", padding: "8px 0" }}>— ยังไม่ได้ระบุ AI Tool —</div>
           ) : (
@@ -577,7 +589,7 @@ function PrintInner() {
                     <div style={{ width: 96, flexShrink: 0 }}>
                       <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>{cfg.label}</span>
                     </div>
-                    <div style={{ flex: 1 }}>{tools.map((t, i) => <ToolTag key={i} name={t} type={type} />)}</div>
+                    <div style={{ flex: 1 }}>{tools.map((t, i) => <ToolTag key={i} name={t.name} count={t.count} type={type} />)}</div>
                   </div>
                 );
               })}
@@ -586,7 +598,7 @@ function PrintInner() {
                   <div style={{ width: 96, flexShrink: 0 }}>
                     <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700, background: "#f6f8fb", color: "#677889", border: "1px solid #dde3eb" }}>อื่น ๆ</span>
                   </div>
-                  <div style={{ flex: 1 }}>{toolGroups[""].map((t, i) => <ToolTag key={i} name={t} type="" />)}</div>
+                  <div style={{ flex: 1 }}>{toolGroups[""].map((t, i) => <ToolTag key={i} name={t.name} count={t.count} type="" />)}</div>
                 </div>
               )}
             </div>
