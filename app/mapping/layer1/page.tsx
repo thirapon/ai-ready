@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import { UNESCO_DIMENSIONS, newRow, getDimension, getCompetency } from "@/lib/unesco";
 import type { MappingRow } from "@/lib/unesco";
+import ToolChipInput from "@/components/form/ToolChipInput";
 
 interface Submission {
   submissionStatus: string;
@@ -108,13 +109,14 @@ function IntegrationToggle({ label, desc, on, onClick }: { label: string; desc: 
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 function RowPanel({
-  open, row, isNew, onClose, onSave,
+  open, row, isNew, onClose, onSave, toolSuggestions = [],
 }: {
   open: boolean;
   row: MappingRow;
   isNew: boolean;
   onClose: () => void;
   onSave: (r: MappingRow) => void;
+  toolSuggestions?: string[];
 }) {
   const [draft, setDraft] = useState<MappingRow>(row);
   useEffect(() => { setDraft(row); }, [row]);
@@ -234,10 +236,10 @@ function RowPanel({
               <span style={{ fontSize: 12, fontWeight: 800, color: "#a86a14", letterSpacing: "0.06em" }}>AI TOOL / PLATFORM</span>
             </div>
             <FieldLabel>ชื่อ AI Tool หรือ Platform</FieldLabel>
-            <FieldInput value={draft.aiTool} onChange={(v) => set({ aiTool: v })} placeholder="เช่น ChatGPT, Gemini, Copilot" />
+            <ToolChipInput value={draft.aiTool} onChange={(v) => set({ aiTool: v })} suggestions={toolSuggestions} />
             <div style={{ marginTop: 5, fontSize: 12, color: "#8b99a8", display: "flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              ถ้าใช้หลาย tool ให้คั่นด้วยเครื่องหมายจุลภาค (,) เช่น ChatGPT, Claude, Gemini
+              พิมพ์ชื่อ tool แล้วกด Enter เพื่อเพิ่มทีละตัว (เลือกจากรายการแนะนำได้)
             </div>
             <div style={{ marginTop: 12 }}>
               <FieldLabel>ประเภท</FieldLabel>
@@ -705,6 +707,7 @@ function Layer1MappingInner() {
         isNew={editIdx === null}
         onClose={closePanel}
         onSave={savePanel}
+        toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((t) => t.trim()).filter(Boolean))))}
       />
     </div>
   );
