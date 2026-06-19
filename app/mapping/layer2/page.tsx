@@ -236,10 +236,10 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
               <span style={{ fontSize: 12, fontWeight: 800, color: "#137a4a", letterSpacing: "0.06em" }}>AI INTEGRATION LEVEL</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <IntegrationToggle label="Free Zone"  desc="นักศึกษาสามารถใช้ AI ได้อย่างอิสระ ไม่มีข้อจำกัด"      on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
-              <IntegrationToggle label="Consulted"  desc="ใช้ AI เพื่อปรึกษา ค้นหา หรือรับคำแนะนำ"              on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
-              <IntegrationToggle label="Assisted"   desc="AI ช่วยสร้างเนื้อหาบางส่วนภายใต้การควบคุม"            on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
-              <IntegrationToggle label="Generated"  desc="AI สร้างผลลัพธ์ส่วนใหญ่ นักศึกษาตรวจสอบ/แก้ไข"      on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
+              <IntegrationToggle label="AI Free Zone"  desc="ไม่ใช้ AI ในทุกขั้นตอน — เป็นผลงานของนักศึกษาทั้งหมด"      on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
+              <IntegrationToggle label="AI Consulted"  desc="ใช้ AI เพื่อช่วยคิดเท่านั้น (ไอเดีย คำอธิบาย คำแนะนำ) แต่นักศึกษาผลิตผลงานทั้งหมดเอง"  on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
+              <IntegrationToggle label="AI Assisted"   desc="AI และนักศึกษาร่วมกันผลิต โดยนักศึกษากำกับ แก้ไข และเป็นเจ้าของผลงานสุดท้าย"  on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
+              <IntegrationToggle label="AI Generated"  desc="AI ผลิตผลงานเกือบทั้งหมดหรือทั้งหมด นักศึกษาเป็นผู้กำกับและตรวจทาน"  on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
             </div>
           </div>
 
@@ -584,7 +584,7 @@ function Layer2MappingInner() {
                               {row.freeZone && (
                                 <div>
                                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#6d28d9", background: "#ede9fe", border: "1px solid #c4b5fd", borderRadius: 99, padding: "2px 10px" }}>
-                                    Free Zone
+                                    AI Free Zone
                                   </span>
                                 </div>
                               )}
