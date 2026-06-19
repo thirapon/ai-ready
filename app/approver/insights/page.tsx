@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
@@ -92,6 +92,7 @@ export default function ExecutiveInsights() {
   const [session, setSession] = useState<{ name: string } | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -698,11 +699,20 @@ export default function ExecutiveInsights() {
                     </tr>
                   </thead>
                   <tbody>
-                    {insights.ranking.map((p) => (
-                      <tr key={p.id}>
+                    {insights.ranking.map((p) => {
+                      const open = expandedScores.has(p.id);
+                      return (
+                      <Fragment key={p.id}>
+                      <tr
+                        onClick={() => setExpandedScores((prev) => { const s = new Set(prev); if (open) s.delete(p.id); else s.add(p.id); return s; })}
+                        style={{ cursor: "pointer", background: open ? "#f6f8fb" : undefined }}
+                      >
                         <td>
-                          <div className="rank__prog">{p.program}</div>
-                          <div className="rank__fac">{p.faculty}</div>
+                          <div className="rank__prog" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={open ? "#1a4f8a" : "#b9c3cf"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "transform 0.2s", transform: open ? "rotate(90deg)" : "rotate(0deg)", flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
+                            {p.program}
+                          </div>
+                          <div className="rank__fac" style={{ paddingLeft: 18 }}>{p.faculty}</div>
                         </td>
                         <td>
                           <span className="rank__cat">
@@ -720,10 +730,36 @@ export default function ExecutiveInsights() {
                         <td>
                           {p.flags.length === 0
                             ? <div className="rank__flags"><span className="rank__flag-ok">✓</span></div>
-                            : <div className="rank__flags">{p.flags.map((fk, i) => <span key={i} className={`rank__flag-dot ${fk === "no-ethics" ? "is-warn" : "is-info"}`} title={fk} />)}</div>}
+                            : <div className="rank__flags">{p.flags.map((fk, i) => <span key={i} className={`rank__flag-dot ${fk === "no-ethics" || fk === "no-human" ? "is-warn" : "is-info"}`} title={fk} />)}</div>}
                         </td>
                       </tr>
-                    ))}
+                      {open && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: 0, background: "#f6f8fb", borderBottom: "1px solid #eef1f6" }}>
+                            <div style={{ padding: "12px 16px 14px 26px" }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 9 }}>คะแนนรายปัจจัย</div>
+                              <div style={{ display: "grid", gap: 8 }}>
+                                {insights.scoreFactors.map((sf) => {
+                                  const v = Math.round((p.factors[sf.key as keyof typeof p.factors] ?? 0) * 100);
+                                  return (
+                                    <div key={sf.key} style={{ display: "grid", gridTemplateColumns: "minmax(150px,200px) 1fr 42px 78px", alignItems: "center", gap: 12 }}>
+                                      <span style={{ fontSize: 12.5, color: "#3a4859" }}>{sf.label}</span>
+                                      <span style={{ display: "block", height: 8, background: "#e6eaf0", borderRadius: 4, overflow: "hidden" }}>
+                                        <span style={{ display: "block", height: "100%", width: v + "%", background: scoreColor(v), borderRadius: 4, transition: "width 0.4s ease" }} />
+                                      </span>
+                                      <span style={{ fontSize: 12.5, fontWeight: 700, color: scoreColor(v), fontFamily: "'IBM Plex Sans', sans-serif", textAlign: "right" }}>{v}%</span>
+                                      <span style={{ fontSize: 11, color: "#8b99a8", textAlign: "right" }}>น้ำหนัก {sf.weight}%</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </InsCard>
