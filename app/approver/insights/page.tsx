@@ -196,13 +196,13 @@ export default function ExecutiveInsights() {
                             (l2.length > 0 ? (l2.filter(r => r.competency?.trim() || r.courseName?.trim()).length / l2.length) : 0)) / 2;
       const dims = new Set(l1.map((r) => r.dimension).filter(Boolean));
       const dimCov = dims.size / 4;
-      const depthVals = all.map((r) => {
+      // AI Free Zone (no AI) / unspecified rows are excluded so a deliberate no-AI choice isn't penalized.
+      const depthVals: number[] = [];
+      all.forEach((r) => {
         const rv = r as unknown as Record<string, unknown>;
-        if (rv.generated) return 1.0;
-        if (rv.assisted) return 0.8;
-        if (rv.consulted) return 0.5;
-        if (rv.freeZone) return 0.25;
-        return 0.25;
+        if (rv.generated) depthVals.push(1.0);
+        else if (rv.assisted) depthVals.push(0.8);
+        else if (rv.consulted) depthVals.push(0.5);
       });
       const depth = depthVals.length ? depthVals.reduce((a, b) => a + b, 0) / depthVals.length : 0;
       const allToolNames = all.flatMap((r) => splitTools((r as MappingRow).aiTool || ""));
@@ -242,7 +242,7 @@ export default function ExecutiveInsights() {
     const FACTOR_DEFS = [
       { key: "completeness", label: "ความครบของการแมพ",       weight: 40, desc: "รายวิชาที่แมพแล้ว เทียบกับรายวิชาทั้งหมด" },
       { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 20, desc: "แมพครบทั้ง 4 มิติ UNESCO หรือไม่" },
-      { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 20, desc: "ระดับ Consulted → Assisted → Generated" },
+      { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 20, desc: "ระดับ AI Consulted → Assisted → Generated (ไม่นับแถว AI Free Zone)" },
       { key: "toolDiv",      label: "ความหลากหลายของเครื่องมือ", weight: 10, desc: "จำนวนกลุ่มเครื่องมือ AI ที่ใช้ (จาก 5 กลุ่ม)" },
       { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 10, desc: "สัดส่วนสมรรถนะจาก Industry ใน Layer 2" },
     ];

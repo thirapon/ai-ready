@@ -49,7 +49,8 @@ function peakLevel(lvl: GRow["levels"]) {
   if (lvl?.generated) return { label: "Generated", color: "#6a3eb5" };
   if (lvl?.assisted)  return { label: "Assisted",  color: "#b6620e" };
   if (lvl?.consulted) return { label: "Consulted", color: "#1a4f8a" };
-  return { label: "Awareness", color: "#8b97a8" };
+  if (lvl?.free)      return { label: "AI Free Zone", color: "#8b97a8" };
+  return { label: "ไม่ระบุ", color: "#b9c3cf" };
 }
 function trunc(s: string, n: number) { return s && s.length > n ? s.slice(0, n) + "…" : (s || ""); }
 
@@ -312,7 +313,7 @@ function VizLegend({ tab }: { tab: "l1" | "l2" }) {
       <div className="cviz-legend__sep" />
       <div className="cviz-legend__grp">
         <span className="cviz-legend__hd">AI Depth</span>
-        {[{ label: "Awareness", color: "#8b97a8" }, { label: "Consulted", color: "#1a4f8a" }, { label: "Assisted", color: "#b6620e" }, { label: "Generated", color: "#6a3eb5" }].map((l) => (
+        {[{ label: "AI Free Zone", color: "#8b97a8" }, { label: "Consulted", color: "#1a4f8a" }, { label: "Assisted", color: "#b6620e" }, { label: "Generated", color: "#6a3eb5" }].map((l) => (
           <span key={l.label} className="cviz-legend__item">
             <span className="cviz-legend__pill" style={{ background: l.color }} />{l.label}
           </span>
