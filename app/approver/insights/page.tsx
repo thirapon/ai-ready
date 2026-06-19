@@ -41,6 +41,9 @@ function categorizeTool(name: string): string {
   return "domain";
 }
 
+const splitTools = (raw: string): string[] =>
+  raw.split(/[,،、;／/]/).map((t) => t.trim()).filter(Boolean);
+
 const DIM_NAMES: Record<string, string> = {
   human:      "Human-centred Mindset",
   ethics:     "Ethics of AI",
@@ -86,6 +89,98 @@ function InsCard({ children, title, icon, sub }: { children: React.ReactNode; ti
   );
 }
 
+// ─── Analysis helper (module-level — no component deps) ───────────────────────
+function computeAnalysis(subs: Submission[]) {
+  const allL1: MappingRow[] = subs.flatMap((s) => Array.isArray(s.layer1_mapping) ? s.layer1_mapping : []);
+  const allL2: Layer2Row[] = subs.flatMap((s) => Array.isArray(s.layer2_mapping) ? s.layer2_mapping : []);
+  const allRows = [...allL1, ...allL2];
+
+  const toolCount: Record<string, number> = {};
+  const catCount: Record<string, number> = {};
+  allRows.forEach((r) => {
+    const raw = (r.aiTool ?? "").trim();
+    if (!raw) return;
+    splitTools(raw).forEach((tool) => {
+      toolCount[tool] = (toolCount[tool] || 0) + 1;
+      const cat = categorizeTool(tool);
+      catCount[cat] = (catCount[cat] || 0) + 1;
+    });
+  });
+  const topTools = Object.entries(toolCount).sort((a, b) => b[1] - a[1]).slice(0, 8)
+    .map(([name, count]) => ({ name, count, cat: categorizeTool(name) }));
+  const toolsUnique = Object.keys(toolCount).length;
+  const catTotal = Math.max(1, Object.values(catCount).reduce((a, b) => a + b, 0));
+  const cats = Object.keys(CAT_META).map((k) => ({
+    key: k, ...CAT_META[k], count: catCount[k] || 0,
+    pct: Math.round((catCount[k] || 0) / catTotal * 100),
+  })).sort((a, b) => b.count - a.count);
+
+  const dimCount: Record<string, number> = {};
+  const dimPrograms: Record<string, Set<string>> = {};
+  allL1.forEach((r, i) => {
+    if (!r.dimension) return;
+    dimCount[r.dimension] = (dimCount[r.dimension] || 0) + 1;
+    if (!dimPrograms[r.dimension]) dimPrograms[r.dimension] = new Set();
+    const subIdx = Math.floor(i / Math.max(1, allL1.length / subs.length));
+    dimPrograms[r.dimension].add(String(subIdx));
+  });
+  const dimMax = Math.max(1, ...DIM_KEYS.map((k) => dimCount[k] || 0));
+  const dims = DIM_KEYS.map((k) => ({
+    key: k, name: DIM_NAMES[k] || k,
+    count: dimCount[k] || 0,
+    pct: Math.round((dimCount[k] || 0) / dimMax * 100),
+    programs: dimPrograms[k]?.size || 0,
+  }));
+
+  const levelKeys = [
+    { key: "freeZone",  label: "AI Free Zone" },
+    { key: "consulted", label: "AI Consulted" },
+    { key: "assisted",  label: "AI Assisted" },
+    { key: "generated", label: "AI Generated" },
+  ];
+  const heat: Record<string, Record<number, number>> = {};
+  let heatMax = 1;
+  levelKeys.forEach(({ key }) => { heat[key] = { 1: 0, 2: 0, 3: 0, 4: 0 }; });
+  allRows.forEach((r) => {
+    const yr = parseInt(String((r as MappingRow).year || 0));
+    if (![1, 2, 3, 4].includes(yr)) return;
+    levelKeys.forEach(({ key }) => {
+      if ((r as unknown as Record<string, unknown>)[key]) {
+        heat[key][yr]++;
+        heatMax = Math.max(heatMax, heat[key][yr]);
+      }
+    });
+  });
+
+  const apply = allL1.filter((r) => r.competency?.toLowerCase().includes("apply")).length;
+  const create = allL1.filter((r) => r.competency?.toLowerCase().includes("create")).length;
+  const school = allL2.filter((r) => r.sector === "school").length;
+  const industry = allL2.filter((r) => r.sector === "industry").length;
+
+  const FLAGS = {
+    "no-human":   { kind: "warn", label: "ยังไม่ได้แมพมิติ Human-centred Mindset" },
+    "no-ethics":  { kind: "warn", label: "ยังไม่ได้แมพมิติจริยธรรม (Ethics of AI)" },
+    "shallow":    { kind: "info", label: "ยังไม่มีการใช้ AI ระดับ Generated — ความลึกยังจำกัด" },
+    "incomplete": { kind: "info", label: "แมพยังไม่ครบทุกรายวิชา" },
+  };
+  const flags: { kind: string; label: string; program: string; faculty: string }[] = [];
+  subs.forEach((s) => {
+    const l1 = Array.isArray(s.layer1_mapping) ? s.layer1_mapping : [];
+    const l2 = Array.isArray(s.layer2_mapping) ? s.layer2_mapping : [];
+    const all = [...l1, ...l2];
+    const dimsSet = new Set(l1.map((r) => r.dimension).filter(Boolean));
+    const prog = s.program_name;
+    const fac = s.faculty_name.replace(/^คณะ/, "");
+    if (!dimsSet.has("human")) flags.push({ kind: "warn", label: FLAGS["no-human"].label, program: prog, faculty: fac });
+    if (!dimsSet.has("ethics")) flags.push({ kind: "warn", label: FLAGS["no-ethics"].label, program: prog, faculty: fac });
+    if (!all.some((r) => (r as unknown as Record<string, unknown>).generated)) flags.push({ kind: "info", label: FLAGS["shallow"].label, program: prog, faculty: fac });
+    if (!isDone(s.layer1_mapping, 1) || !isDone(s.layer2_mapping, 2)) flags.push({ kind: "info", label: FLAGS["incomplete"].label, program: prog, faculty: fac });
+  });
+  flags.sort((a, b) => (a.kind === "warn" ? -1 : 1) - (b.kind === "warn" ? -1 : 1));
+
+  return { topTools, cats, toolsUnique, dims, heat: { levels: levelKeys, years: [1, 2, 3, 4] as number[], data: heat, max: heatMax }, composition: { apply, create, school, industry }, flags };
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ExecutiveInsights() {
   const router = useRouter();
@@ -93,6 +188,7 @@ export default function ExecutiveInsights() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -113,79 +209,6 @@ export default function ExecutiveInsights() {
   const insights = useMemo(() => {
     if (submissions.length === 0) return null;
 
-    const allL1: MappingRow[] = submissions.flatMap((s) => Array.isArray(s.layer1_mapping) ? s.layer1_mapping : []);
-    const allL2: Layer2Row[] = submissions.flatMap((s) => Array.isArray(s.layer2_mapping) ? s.layer2_mapping : []);
-    const allRows = [...allL1, ...allL2];
-
-    // Tools — split by comma to handle "ChatGPT, Claude, Gemini" as separate tools
-    const splitTools = (raw: string): string[] =>
-      raw.split(/[,،、;／/]/).map((t) => t.trim()).filter(Boolean);
-
-    const toolCount: Record<string, number> = {};
-    const catCount: Record<string, number> = {};
-    allRows.forEach((r) => {
-      const raw = (r.aiTool ?? "").trim();
-      if (!raw) return;
-      splitTools(raw).forEach((tool) => {
-        toolCount[tool] = (toolCount[tool] || 0) + 1;
-        const cat = categorizeTool(tool);
-        catCount[cat] = (catCount[cat] || 0) + 1;
-      });
-    });
-    const topTools = Object.entries(toolCount).sort((a, b) => b[1] - a[1]).slice(0, 8)
-      .map(([name, count]) => ({ name, count, cat: categorizeTool(name) }));
-    const toolsUnique = Object.keys(toolCount).length;
-    const catTotal = Math.max(1, Object.values(catCount).reduce((a, b) => a + b, 0));
-    const cats = Object.keys(CAT_META).map((k) => ({
-      key: k, ...CAT_META[k], count: catCount[k] || 0,
-      pct: Math.round((catCount[k] || 0) / catTotal * 100),
-    })).sort((a, b) => b.count - a.count);
-
-    // Dimensions (Layer 1)
-    const dimCount: Record<string, number> = {};
-    const dimPrograms: Record<string, Set<string>> = {};
-    allL1.forEach((r, i) => {
-      if (!r.dimension) return;
-      dimCount[r.dimension] = (dimCount[r.dimension] || 0) + 1;
-      if (!dimPrograms[r.dimension]) dimPrograms[r.dimension] = new Set();
-      const subIdx = Math.floor(i / Math.max(1, allL1.length / submissions.length));
-      dimPrograms[r.dimension].add(String(subIdx));
-    });
-    const dimMax = Math.max(1, ...DIM_KEYS.map((k) => dimCount[k] || 0));
-    const dims = DIM_KEYS.map((k) => ({
-      key: k, name: DIM_NAMES[k] || k,
-      count: dimCount[k] || 0,
-      pct: Math.round((dimCount[k] || 0) / dimMax * 100),
-      programs: dimPrograms[k]?.size || 0,
-    }));
-
-    // Heatmap (autonomy × year)
-    const levelKeys = [
-      { key: "freeZone",  label: "AI Free Zone" },
-      { key: "consulted", label: "AI Consulted" },
-      { key: "assisted",  label: "AI Assisted" },
-      { key: "generated", label: "AI Generated" },
-    ];
-    const heat: Record<string, Record<number, number>> = {};
-    let heatMax = 1;
-    levelKeys.forEach(({ key }) => { heat[key] = { 1: 0, 2: 0, 3: 0, 4: 0 }; });
-    allRows.forEach((r) => {
-      const yr = parseInt(String((r as MappingRow).year || 0));
-      if (![1, 2, 3, 4].includes(yr)) return;
-      levelKeys.forEach(({ key }) => {
-        if ((r as unknown as Record<string, unknown>)[key]) {
-          heat[key][yr]++;
-          heatMax = Math.max(heatMax, heat[key][yr]);
-        }
-      });
-    });
-
-    // Composition
-    const apply = allL1.filter((r) => r.competency?.toLowerCase().includes("apply")).length;
-    const create = allL1.filter((r) => r.competency?.toLowerCase().includes("create")).length;
-    const school = allL2.filter((r) => r.sector === "school").length;
-    const industry = allL2.filter((r) => r.sector === "industry").length;
-
     // Ranking
     const ranking = submissions.map((s) => {
       const l1 = Array.isArray(s.layer1_mapping) ? s.layer1_mapping : [];
@@ -196,14 +219,10 @@ export default function ExecutiveInsights() {
       const completeness = ((l1.length > 0 ? (l1.filter(r => r.courseName?.trim()).length / l1.length) : 0) +
                             (l2.length > 0 ? (l2.filter(r => r.competency?.trim() || r.courseName?.trim()).length / l2.length) : 0)) / 2;
       const dims = new Set(l1.map((r) => r.dimension).filter(Boolean));
-      // Human-centred + Ethics come from L1 (core values dims). Techniques &
-      // System Design may be covered by L1 OR by Layer 2 — School & Industry
-      // applied competencies inherently embody those two dimensions.
       const covered = new Set(dims);
       const hasL2 = l2.some((r) => (r.competency?.trim() || r.courseName?.trim()));
       if (hasL2) { covered.add("techniques"); covered.add("design"); }
       const dimCov = covered.size / 4;
-      // AI Free Zone (no AI) / unspecified rows are excluded so a deliberate no-AI choice isn't penalized.
       const depthVals: number[] = [];
       all.forEach((r) => {
         const rv = r as unknown as Record<string, unknown>;
@@ -236,17 +255,6 @@ export default function ExecutiveInsights() {
       };
     }).sort((a, b) => b.score - a.score);
 
-    // Gap flags
-    const flagDefs: Record<string, { kind: string; label: string }> = {
-      "no-human":   { kind: "warn", label: "ยังไม่ได้แมพมิติ Human-centred Mindset" },
-      "no-ethics":  { kind: "warn", label: "ยังไม่ได้แมพมิติจริยธรรม (Ethics of AI)" },
-      "shallow":    { kind: "info", label: "ยังไม่มีการใช้ AI ระดับ Generated — ความลึกยังจำกัด" },
-      "incomplete": { kind: "info", label: "แมพยังไม่ครบทุกรายวิชา" },
-    };
-    const flags: { kind: string; label: string; program: string; faculty: string }[] = [];
-    ranking.forEach((p) => p.flags.forEach((fk) => flags.push({ kind: flagDefs[fk]?.kind || "info", label: flagDefs[fk]?.label || fk, program: p.program, faculty: p.faculty })));
-    flags.sort((a, b) => (a.kind === "warn" ? -1 : 1) - (b.kind === "warn" ? -1 : 1));
-
     // Score methodology
     const FACTOR_DEFS = [
       { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 30, desc: "ครบ 4 มิติ UNESCO — Human/Ethics จาก L1, Techniques/Design จาก L1 หรือ L2" },
@@ -262,7 +270,8 @@ export default function ExecutiveInsights() {
 
     const readinessPct = ranking.length ? Math.round(ranking.reduce((s, p) => s + p.score, 0) / ranking.length) : 0;
     const fullyMapped = submissions.filter((s) => isDone(s.layer1_mapping, 1) && isDone(s.layer2_mapping, 2)).length;
-    const embedCount = allL1.length + allL2.length;
+    const embedCount = submissions.reduce((n, s) => n + (Array.isArray(s.layer1_mapping) ? s.layer1_mapping.length : 0) + (Array.isArray(s.layer2_mapping) ? s.layer2_mapping.length : 0), 0);
+    const toolsUnique = computeAnalysis(submissions).toolsUnique;
     const faculties = new Set(submissions.map((s) => s.faculty_name)).size;
 
     // ── University coverage ──────────────────────────────────────────────────
@@ -303,8 +312,17 @@ export default function ExecutiveInsights() {
       coverPct: f.total > 0 ? Math.round(f.submitted / f.total * 100) : 0,
     })).sort((a, b) => b.avgScore - a.avgScore);
 
-    return { topTools, cats, dims, heat: { levels: levelKeys, years: [1, 2, 3, 4], data: heat, max: heatMax }, composition: { apply, create, school, industry }, ranking, flags, scoreFactors, facultySummary, coverage: { submitted: submissions.length, total: totalPrograms, pct: coveragePct }, headline: { curricula: submissions.length, fullyMapped, embedCount, toolsUnique, faculties, readinessPct } };
+    return { ranking, scoreFactors, facultySummary, coverage: { submitted: submissions.length, total: totalPrograms, pct: coveragePct }, headline: { curricula: submissions.length, fullyMapped, embedCount, toolsUnique, faculties, readinessPct } };
   }, [submissions]);
+
+  // Analysis sections — recompute when program filter changes
+  const filteredAnalysis = useMemo(() => {
+    if (submissions.length === 0) return null;
+    const subs = selectedProgramId
+      ? submissions.filter((s) => s.id === selectedProgramId)
+      : submissions;
+    return computeAnalysis(subs);
+  }, [submissions, selectedProgramId]);
 
   const handleLogout = () => {
     localStorage.removeItem(SESSION_KEY);
@@ -467,20 +485,41 @@ export default function ExecutiveInsights() {
               </table>
             </InsCard>
 
+            {/* Analysis filter bar */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid #dde3eb", borderRadius: 10 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#677889" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              <span style={{ fontSize: 13, color: "#677889", whiteSpace: "nowrap" }}>แสดงข้อมูลเฉพาะหลักสูตร:</span>
+              <select
+                value={selectedProgramId ?? ""}
+                onChange={(e) => setSelectedProgramId(e.target.value || null)}
+                style={{ flex: 1, maxWidth: 420, fontSize: 13, padding: "5px 10px", border: "1px solid #dde3eb", borderRadius: 6, background: "#fff", color: "#14202e", cursor: "pointer" }}
+              >
+                <option value="">ทั้งมหาวิทยาลัย</option>
+                {submissions.map((s) => (
+                  <option key={s.id} value={s.id}>{s.program_name} — {s.faculty_name}</option>
+                ))}
+              </select>
+              {selectedProgramId && (
+                <button onClick={() => setSelectedProgramId(null)} style={{ fontSize: 12, color: "#1a4f8a", background: "#eef4fb", border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", whiteSpace: "nowrap" }}>
+                  ล้าง filter
+                </button>
+              )}
+            </div>
+
             {/* Tools + Donut */}
             <div className="ins-grid">
               {/* Top Tools */}
               <InsCard
                 title="เครื่องมือ AI ที่ใช้มากที่สุด"
                 icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>}
-                sub={`รวมจากทุกหลักสูตร · เครื่องมือทั้งหมด ${insights.headline.toolsUnique} ตัว`}
+                sub={`${selectedProgramId ? "เฉพาะหลักสูตรนี้" : "รวมจากทุกหลักสูตร"} · เครื่องมือทั้งหมด ${filteredAnalysis?.toolsUnique ?? 0} ตัว`}
               >
-                {insights.topTools.length === 0 ? (
+                {!filteredAnalysis?.topTools.length ? (
                   <div style={{ color: "#8b99a8", fontSize: 13 }}>ยังไม่มีข้อมูลเครื่องมือ</div>
                 ) : (
                   <div className="lead">
-                    {insights.topTools.map((t) => {
-                      const max = insights.topTools[0]?.count || 1;
+                    {filteredAnalysis.topTools.map((t) => {
+                      const max = filteredAnalysis.topTools[0]?.count || 1;
                       return (
                         <div className="lead__row" key={t.name}>
                           <span className="lead__name">
@@ -502,17 +541,17 @@ export default function ExecutiveInsights() {
                 icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>}
                 sub="หลักสูตรพึ่งพาเครื่องมือกลุ่มใดมากที่สุด"
               >
-                {insights.cats.every((c) => c.count === 0) ? (
+                {!filteredAnalysis || filteredAnalysis.cats.every((c) => c.count === 0) ? (
                   <div style={{ color: "#8b99a8", fontSize: 13 }}>ยังไม่มีข้อมูล</div>
                 ) : (() => {
-                  const total = Math.max(1, insights.cats.reduce((s, c) => s + c.count, 0));
+                  const total = Math.max(1, filteredAnalysis.cats.reduce((s, c) => s + c.count, 0));
                   let acc = 0;
-                  const stops = insights.cats.filter((c) => c.count > 0).map((c) => {
+                  const stops = filteredAnalysis.cats.filter((c) => c.count > 0).map((c) => {
                     const start = acc / total * 360;
                     acc += c.count;
                     return `${c.color} ${start}deg ${acc / total * 360}deg`;
                   }).join(", ");
-                  const top = insights.cats[0];
+                  const top = filteredAnalysis.cats[0];
                   return (
                     <div className="donut-wrap">
                       <div className="donut" style={{ background: `conic-gradient(${stops})` }}>
@@ -524,7 +563,7 @@ export default function ExecutiveInsights() {
                         </div>
                       </div>
                       <div className="donut-legend">
-                        {insights.cats.map((c) => (
+                        {filteredAnalysis.cats.map((c) => (
                           <div className="donut-legend__row" key={c.key}>
                             <span className="donut-legend__sw" style={{ background: c.color }} />
                             <span className="donut-legend__name">{c.label}</span>
@@ -547,11 +586,11 @@ export default function ExecutiveInsights() {
                 sub="จำนวนการแมพในแต่ละมิติ และจำนวนหลักสูตรที่ครอบคลุม"
               >
                 <div className="dim">
-                  {insights.dims.map((d) => (
+                  {(filteredAnalysis?.dims ?? []).map((d) => (
                     <div className={`dim__row${d.count === 0 ? " is-zero" : ""}`} key={d.key}>
                       <div className="dim__top">
                         <span className="dim__name">{d.name}</span>
-                        <span className="dim__meta"><b>{d.count}</b> mappings · <b>{d.programs}</b>/{insights.headline.curricula} หลักสูตร</span>
+                        <span className="dim__meta"><b>{d.count}</b> mappings · <b>{d.programs}</b>/{selectedProgramId ? 1 : insights.headline.curricula} หลักสูตร</span>
                       </div>
                       <span className="dim__track"><span className="dim__fill" style={{ width: Math.max(d.pct, d.count === 0 ? 0 : 4) + "%" }} /></span>
                     </div>
@@ -565,19 +604,20 @@ export default function ExecutiveInsights() {
                 icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}
                 sub="ดูว่าระดับการใช้ AI ของนักศึกษาไล่ลึกขึ้นตามชั้นปีหรือไม่"
               >
+                {filteredAnalysis && (<>
                 <div className="heat__colhead">
                   <span>ระดับการใช้ AI</span>
-                  {insights.heat.years.map((y) => <span key={y}>ปี {y}</span>)}
+                  {filteredAnalysis.heat.years.map((y) => <span key={y}>ปี {y}</span>)}
                 </div>
                 <div className="heat">
-                  {insights.heat.levels.map(({ key, label }) => (
+                  {filteredAnalysis.heat.levels.map(({ key, label }) => (
                     <div className="heat__row" key={key}>
                       <span className="heat__rowlabel">{label}</span>
-                      {insights.heat.years.map((y) => {
-                        const n = insights.heat.data[key]?.[y] || 0;
-                        const a = n === 0 ? 0 : 0.12 + (n / insights.heat.max) * 0.78;
+                      {filteredAnalysis.heat.years.map((y) => {
+                        const n = filteredAnalysis.heat.data[key]?.[y] || 0;
+                        const a = n === 0 ? 0 : 0.12 + (n / filteredAnalysis.heat.max) * 0.78;
                         return (
-                          <span key={y} className="heat__cell" style={{ background: n === 0 ? "var(--ink-50)" : `rgba(26,79,138,${a.toFixed(2)})`, color: n / insights.heat.max > 0.5 ? "#fff" : "var(--ink-700)", borderColor: n === 0 ? "var(--ink-100)" : "transparent" }}>
+                          <span key={y} className="heat__cell" style={{ background: n === 0 ? "var(--ink-50)" : `rgba(26,79,138,${a.toFixed(2)})`, color: n / filteredAnalysis.heat.max > 0.5 ? "#fff" : "var(--ink-700)", borderColor: n === 0 ? "var(--ink-100)" : "transparent" }}>
                             {n || ""}
                           </span>
                         );
@@ -592,6 +632,7 @@ export default function ExecutiveInsights() {
                   </span>
                   มาก
                 </div>
+                </>)}
               </InsCard>
             </div>
 
@@ -603,8 +644,8 @@ export default function ExecutiveInsights() {
                 icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20M2 6h20M2 18h20"/></svg>}
                 sub="ระดับ Apply / Create และที่มา School / Industry"
               >
-                {(() => {
-                  const { apply, create, school, industry } = insights.composition;
+                {filteredAnalysis && (() => {
+                  const { apply, create, school, industry } = filteredAnalysis.composition;
                   const t1 = Math.max(1, apply + create), t2 = Math.max(1, school + industry);
                   return (
                     <div className="comp">
@@ -631,13 +672,13 @@ export default function ExecutiveInsights() {
               <InsCard
                 title="ประเด็นที่ควรพิจารณา"
                 icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-                sub={`${insights.flags.length} รายการ — ช่องว่างเชิงคุณภาพที่ควรติดตาม`}
+                sub={`${filteredAnalysis?.flags.length ?? 0} รายการ — ช่องว่างเชิงคุณภาพที่ควรติดตาม`}
               >
-                {insights.flags.length === 0 ? (
+                {!filteredAnalysis?.flags.length ? (
                   <div style={{ color: "#137a4a", fontSize: 13, fontWeight: 600 }}>✓ ไม่พบประเด็นที่ต้องติดตาม</div>
                 ) : (
                   <div className="flags">
-                    {insights.flags.map((f, i) => (
+                    {filteredAnalysis.flags.map((f, i) => (
                       <div className={`flag flag--${f.kind}`} key={i}>
                         <span className="flag__icon">
                           {f.kind === "warn"
