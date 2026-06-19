@@ -195,7 +195,13 @@ export default function ExecutiveInsights() {
       const completeness = ((l1.length > 0 ? (l1.filter(r => r.courseName?.trim()).length / l1.length) : 0) +
                             (l2.length > 0 ? (l2.filter(r => r.competency?.trim() || r.courseName?.trim()).length / l2.length) : 0)) / 2;
       const dims = new Set(l1.map((r) => r.dimension).filter(Boolean));
-      const dimCov = dims.size / 4;
+      // Human-centred + Ethics come from L1 (core values dims). Techniques &
+      // System Design may be covered by L1 OR by Layer 2 — School & Industry
+      // applied competencies inherently embody those two dimensions.
+      const covered = new Set(dims);
+      const hasL2 = l2.some((r) => (r.competency?.trim() || r.courseName?.trim()));
+      if (hasL2) { covered.add("techniques"); covered.add("design"); }
+      const dimCov = covered.size / 4;
       // AI Free Zone (no AI) / unspecified rows are excluded so a deliberate no-AI choice isn't penalized.
       const depthVals: number[] = [];
       all.forEach((r) => {
@@ -209,11 +215,12 @@ export default function ExecutiveInsights() {
       const toolCats = new Set(allToolNames.map((t) => categorizeTool(t)).filter(Boolean));
       const toolDiv = Math.min(1, toolCats.size / 5);
       const ind = l2.length ? l2.filter((r) => r.sector === "industry").length / l2.length : 0;
-      const score = Math.round((completeness * 0.4 + dimCov * 0.2 + depth * 0.2 + toolDiv * 0.1 + ind * 0.1) * 100);
+      const score = Math.round((completeness * 0.20 + dimCov * 0.30 + depth * 0.25 + ind * 0.15 + toolDiv * 0.10) * 100);
       const topCatCounts: Record<string, number> = {};
       allToolNames.forEach((t) => { const c = categorizeTool(t); topCatCounts[c] = (topCatCounts[c] || 0) + 1; });
       const topCat = Object.entries(topCatCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "llm";
       const flags: string[] = [];
+      if (!dims.has("human")) flags.push("no-human");
       if (!dims.has("ethics")) flags.push("no-ethics");
       if (!all.some((r) => (r as unknown as Record<string, unknown>).generated)) flags.push("shallow");
       if (!l1Done || !l2Done) flags.push("incomplete");
@@ -230,6 +237,7 @@ export default function ExecutiveInsights() {
 
     // Gap flags
     const flagDefs: Record<string, { kind: string; label: string }> = {
+      "no-human":   { kind: "warn", label: "ยังไม่ได้แมพมิติ Human-centred Mindset" },
       "no-ethics":  { kind: "warn", label: "ยังไม่ได้แมพมิติจริยธรรม (Ethics of AI)" },
       "shallow":    { kind: "info", label: "ยังไม่มีการใช้ AI ระดับ Generated — ความลึกยังจำกัด" },
       "incomplete": { kind: "info", label: "แมพยังไม่ครบทุกรายวิชา" },
@@ -240,11 +248,11 @@ export default function ExecutiveInsights() {
 
     // Score methodology
     const FACTOR_DEFS = [
-      { key: "completeness", label: "ความครบของการแมพ",       weight: 40, desc: "รายวิชาที่แมพแล้ว เทียบกับรายวิชาทั้งหมด" },
-      { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 20, desc: "แมพครบทั้ง 4 มิติ UNESCO หรือไม่" },
-      { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 20, desc: "ระดับ AI Consulted → Assisted → Generated (ไม่นับแถว AI Free Zone)" },
+      { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 30, desc: "ครบ 4 มิติ UNESCO — Human/Ethics จาก L1, Techniques/Design จาก L1 หรือ L2" },
+      { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 25, desc: "ระดับ AI Consulted → Assisted → Generated (ไม่นับแถว AI Free Zone)" },
+      { key: "completeness", label: "ความครบของการแมพ",       weight: 20, desc: "รายวิชาที่แมพแล้ว เทียบกับรายวิชาทั้งหมด" },
+      { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 15, desc: "สัดส่วนสมรรถนะจาก Industry ใน Layer 2" },
       { key: "toolDiv",      label: "ความหลากหลายของเครื่องมือ", weight: 10, desc: "จำนวนกลุ่มเครื่องมือ AI ที่ใช้ (จาก 5 กลุ่ม)" },
-      { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 10, desc: "สัดส่วนสมรรถนะจาก Industry ใน Layer 2" },
     ];
     const scoreFactors = FACTOR_DEFS.map((d) => ({
       ...d,
