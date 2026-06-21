@@ -7,7 +7,7 @@ import { getDimension, getCompetency } from "@/lib/unesco";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface Competency { number?: number; name?: string; years?: number[]; sector?: string; }
+interface Competency { number?: number; id?: number; name?: string; years?: number[]; sector?: string; source?: string; desc?: string; note?: string; }
 interface FormData {
   program?: string; faculty?: string; email?: string;
   owner?: string; position?: string;
@@ -434,17 +434,23 @@ function PrintInner() {
                   <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#1a4f8a", color: "white", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, fontFamily: "var(--font-ibm-plex), monospace" }}>{c.number ?? i + 1}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#14202e", lineHeight: 1.4 }}>{c.name || "—"}</div>
+                    {c.desc && (
+                      <div style={{ fontSize: 11.5, color: "#677889", lineHeight: 1.55, marginTop: 4 }}>{c.desc}</div>
+                    )}
                     <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
                       {Array.isArray(c.years) && c.years.length > 0 && (
                         <span style={{ fontSize: 11, fontWeight: 600, color: "#a86a14", background: "#fcf3e1", border: "1px solid #f0dca6", borderRadius: 99, padding: "1px 9px" }}>
                           ปีที่ {c.years.join(", ")}
                         </span>
                       )}
-                      {c.sector && (
-                        <span style={{ fontSize: 11, fontWeight: 600, color: c.sector === "industry" ? "#6d28d9" : "#1a4f8a", background: c.sector === "industry" ? "#f5f3ff" : "#eef4fb", border: `1px solid ${c.sector === "industry" ? "#ddd6fe" : "#dbe7f4"}`, borderRadius: 99, padding: "1px 9px" }}>
-                          {c.sector === "industry" ? "Industry" : "School"}
-                        </span>
-                      )}
+                      {(c.sector || c.source) && (() => {
+                        const s = c.sector ?? c.source;
+                        return (
+                          <span style={{ fontSize: 11, fontWeight: 600, color: s === "industry" ? "#6d28d9" : "#1a4f8a", background: s === "industry" ? "#f5f3ff" : "#eef4fb", border: `1px solid ${s === "industry" ? "#ddd6fe" : "#dbe7f4"}`, borderRadius: 99, padding: "1px 9px" }}>
+                            {s === "industry" ? "Industry" : "School"}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
