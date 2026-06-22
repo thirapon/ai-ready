@@ -35,6 +35,16 @@ const SECTOR_CFG = {
   industry: { label: "Industry", color: "#b6620e", bg: "#fff3e6", border: "#f0d0a0" },
 };
 
+// Layer 2 competency is free text; we link it to a Step-2 competency by name
+// (no DB foreign key). normalizeComp lets us compare leniently — ignoring case,
+// surrounding/extra whitespace — so "Prompt  Engineering " matches "prompt engineering".
+const normalizeComp = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+// A competency is an "orphan" when text is filled but matches no Step-2 name.
+function isOrphanComp(text: string, compNames: Set<string>): boolean {
+  const t = normalizeComp(text);
+  return t !== "" && !compNames.has(t);
+}
+
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const SaveIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
 const SpinIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
@@ -171,9 +181,22 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
                 </div>
               );
             })()}
-            <div style={{ marginBottom: 12 }}>
-              <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder="เลือกจากชิพด้านบน หรือพิมพ์สมรรถนะเอง..." rows={2} />
-            </div>
+            {(() => {
+              const orphan = draft.competency.trim() !== "" && isOrphanComp(draft.competency, new Set(suggestedCompetencies.map((c) => normalizeComp(c.name))));
+              return (
+                <>
+                  <div style={{ marginBottom: orphan ? 6 : 12 }}>
+                    <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder="เลือกจากชิพด้านบน หรือพิมพ์สมรรถนะเอง..." rows={2} />
+                  </div>
+                  {orphan && (
+                    <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 7, padding: "8px 11px", borderRadius: 8, background: "#fcf3e1", border: "1px solid #f0dca6", fontSize: 12, color: "#a86a14", lineHeight: 1.5 }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      <span>สมรรถนะนี้ไม่ตรงกับที่ระบุไว้ใน Step 2 — ตรวจสอบว่าตั้งใจเพิ่มเอง หรือสะกดไม่ตรง</span>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
@@ -356,6 +379,10 @@ function Layer2MappingInner() {
   const schoolCount  = rows.filter((r) => r.sector === "school").length;
   const industryCount= rows.filter((r) => r.sector === "industry").length;
   const courseCount  = new Set(rows.map((r) => r.courseCode).filter(Boolean)).size;
+  // Set of Step-2 competency names (normalized) — to flag Layer 2 rows whose
+  // competency no longer matches any declared competency in the form.
+  const compNames    = new Set((sub?.formData?.competencies ?? []).map((c) => normalizeComp(c.name)).filter(Boolean));
+  const orphanCount  = rows.filter((r) => isOrphanComp(r.competency, compNames)).length;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f0f3f8" }}>
@@ -458,6 +485,14 @@ function Layer2MappingInner() {
           ))}
         </div>
 
+        {/* Orphan competency notice */}
+        {orphanCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", marginBottom: 14, borderRadius: 10, background: "#fcf3e1", border: "1px solid #f0dca6", fontSize: 12.5, color: "#a86a14" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span><b>{orphanCount}</b> รายวิชามีสมรรถนะที่ไม่ตรงกับที่ระบุไว้ใน Step 2 ของแบบฟอร์ม — อาจมาจากการแก้ไข/ลบสมรรถนะในแบบฟอร์มภายหลัง หรือสะกดไม่ตรง</span>
+          </div>
+        )}
+
         {/* Summary table */}
         <div style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -530,6 +565,12 @@ function Layer2MappingInner() {
                             ? <div style={{ fontSize: 12.5, color: "#3a4859", lineHeight: 1.4 }}>{row.competency}</div>
                             : <span style={{ color: "#b9c3cf", fontSize: 12 }}>—</span>
                           }
+                          {isOrphanComp(row.competency, compNames) && (
+                            <span title="สมรรถนะนี้ไม่ตรงกับที่ระบุไว้ใน Step 2 ของแบบฟอร์ม" style={{ display: "inline-flex", alignItems: "center", gap: 4, width: "fit-content", padding: "1px 8px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, background: "#fcf3e1", color: "#a86a14", border: "1px solid #f0dca6" }}>
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                              ไม่พบใน Step 2
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td style={{ padding: "12px 12px" }}>
