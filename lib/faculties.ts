@@ -33,6 +33,29 @@ export const APPROVER = {
   name: "คณะกรรมการ AI-Ready",
 };
 
+/**
+ * Scoped viewers — read-only approver accounts limited to specific faculties.
+ * They see Curriculum Mapping / Executive Insights / Faculty Readiness for their
+ * scope only, and cannot access the approval queue. Password lives in env
+ * (envKey). Scoping is enforced at the UI level (see CLAUDE notes / login route).
+ */
+export interface ScopedViewer {
+  username: string;
+  name: string;
+  scope: string[];   // faculty codes this viewer may see
+  envKey: string;
+}
+export const SCOPED_VIEWERS: ScopedViewer[] = [
+  {
+    username: "buiadmin",
+    name: "ผู้ดูแลข้อมูลวิทยาลัยนานาชาติ",
+    scope: ["intl", "intlcn"],
+    envKey: "VIEWER_BUIADMIN_PASSWORD",
+  },
+];
+export const findScopedViewer = (username: string) =>
+  SCOPED_VIEWERS.find((v) => v.username === username);
+
 /** Returns the env var name for a given faculty code */
 export const facultyEnvKey = (code: string) =>
   `FACULTY_${code.toUpperCase()}_PASSWORD`;

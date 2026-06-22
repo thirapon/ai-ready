@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FACULTIES, APPROVER, facultyEnvKey } from "@/lib/faculties";
+import { FACULTIES, APPROVER, facultyEnvKey, findScopedViewer } from "@/lib/faculties";
 import { getSupabaseClient } from "@/lib/supabase";
 
 interface LoginBody {
@@ -81,6 +81,43 @@ export async function POST(req: NextRequest) {
   if (role === "approver") {
     if (!username || typeof username !== "string") {
       return NextResponse.json({ error: "กรุณากรอกชื่อผู้ใช้" }, { status: 422 });
+    }
+
+    // ── Scoped viewer (read-only, faculty-limited, no approval) ──────────────
+    const viewer = findScopedViewer(username.trim());
+    if (viewer) {
+      const viewerPw = process.env[viewer.envKey];
+      if (!viewerPw) {
+        console.error(`[auth/login] Missing env var: ${viewer.envKey}`);
+        return NextResponse.json(
+          { error: "ระบบยังไม่ได้ตั้งค่ารหัสผ่าน กรุณาติดต่อผู้ดูแลระบบ" },
+          { status: 503 }
+        );
+      }
+      if (password !== viewerPw) {
+        return NextResponse.json(
+          { error: "ชื่อผู้ใช้หรือรหัสผ่านผู้อนุมัติไม่ถูกต้อง" },
+          { status: 401 }
+        );
+      }
+      try {
+        await getSupabaseClient().from("login_sessions").insert({
+          role: "approver",
+          username: viewer.username,
+          remember_me: rememberMe,
+          ip_address: ip,
+          user_agent: ua,
+        });
+      } catch (err) {
+        console.error("[auth/login] session log failed:", err);
+      }
+      return NextResponse.json({
+        success: true,
+        role: "approver",
+        name: viewer.name,
+        scope: viewer.scope,
+        redirect: "/approver/mapping",
+      });
     }
 
     const expectedPw = process.env.APPROVER_PASSWORD;

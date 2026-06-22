@@ -141,7 +141,7 @@ export function LoginForm() {
 
       if (!res.ok) { showError(data.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่"); return; }
 
-      saveSession({ role: data.role, code: data.code, name: data.name }, role === "faculty" ? facultyRemember : approverRemember);
+      saveSession({ role: data.role, code: data.code, name: data.name, scope: data.scope }, role === "faculty" ? facultyRemember : approverRemember);
       router.push(data.redirect);
     } catch {
       showError("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง");

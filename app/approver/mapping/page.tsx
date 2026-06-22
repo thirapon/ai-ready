@@ -11,6 +11,7 @@ interface MappingRecord {
   id: string;
   ref_id: string | null;
   faculty_name: string;
+  faculty_code: string;
   program_name: string;
   form_data: Record<string, unknown> | null;
   layer1_mapping: MappingRow[] | null;
@@ -101,7 +102,7 @@ type TabKey = typeof TABS[number]["key"];
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function MappingDashboard() {
   const router = useRouter();
-  const [session, setSession] = useState<{ name: string } | null>(null);
+  const [session, setSession] = useState<{ name: string; scope?: string[] } | null>(null);
   const [rows, setRows] = useState<ProcessedRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("all");
@@ -111,16 +112,21 @@ export default function MappingDashboard() {
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     if (!raw) { router.replace("/login"); return; }
+    let scope: string[] | undefined;
     try {
       const sess = JSON.parse(raw);
       if (sess.role !== "approver") { router.replace("/login"); return; }
+      if (Array.isArray(sess.scope) && sess.scope.length > 0) scope = sess.scope;
       setSession(sess);
     } catch { router.replace("/login"); return; }
 
     fetch("/api/approver/mapping")
       .then((r) => r.ok ? r.json() : { submissions: [] })
       .then((d) => {
-        const processed: ProcessedRow[] = (d.submissions ?? []).map((s: MappingRecord) => ({
+        const records: MappingRecord[] = (d.submissions ?? []).filter(
+          (s: MappingRecord) => !scope || scope.includes(s.faculty_code)
+        );
+        const processed: ProcessedRow[] = records.map((s: MappingRecord) => ({
           id: s.id,
           refId: s.ref_id ?? "—",
           faculty: s.faculty_name.replace(/^คณะ/, ""),
@@ -196,7 +202,7 @@ export default function MappingDashboard() {
         </div>
         <div style={{ flex: 1 }} />
         <nav className="topbar__nav">
-          <a href="/approver">คำขออนุมัติ</a>
+          {!session.scope && <a href="/approver">คำขออนุมัติ</a>}
           <a href="/approver/mapping" className="is-active">Curriculum Mapping</a>
           <a href="/approver/insights">Executive Insights</a>
           <a href="/approver/faculty-readiness">Faculty Readiness</a>

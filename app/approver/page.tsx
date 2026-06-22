@@ -76,6 +76,8 @@ export default function ApproverDashboard() {
     try {
       const sess = JSON.parse(raw);
       if (sess.role !== "approver") { router.replace("/login"); return; }
+      // Scoped viewers cannot access the approval queue — send them to Mapping.
+      if (Array.isArray(sess.scope) && sess.scope.length > 0) { router.replace("/approver/mapping"); return; }
       setSession(sess);
     } catch {
       router.replace("/login"); return;

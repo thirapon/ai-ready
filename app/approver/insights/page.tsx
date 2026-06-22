@@ -11,6 +11,7 @@ interface Submission {
   id: string;
   ref_id: string | null;
   faculty_name: string;
+  faculty_code: string;
   program_name: string;
   status: string;
   form_data: Record<string, unknown> | null;
@@ -193,7 +194,7 @@ function computeAnalysis(subs: Submission[]) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ExecutiveInsights() {
   const router = useRouter();
-  const [session, setSession] = useState<{ name: string } | null>(null);
+  const [session, setSession] = useState<{ name: string; scope?: string[] } | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedScores, setExpandedScores] = useState<Set<string>>(new Set());
@@ -202,15 +203,22 @@ export default function ExecutiveInsights() {
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
     if (!raw) { router.replace("/login"); return; }
+    let scope: string[] | undefined;
     try {
       const sess = JSON.parse(raw);
       if (sess.role !== "approver") { router.replace("/login"); return; }
+      if (Array.isArray(sess.scope) && sess.scope.length > 0) scope = sess.scope;
       setSession(sess);
     } catch { router.replace("/login"); return; }
 
     fetch("/api/approver/mapping")
       .then((r) => r.ok ? r.json() : { submissions: [] })
-      .then((d) => setSubmissions(d.submissions ?? []))
+      .then((d) => {
+        const subs: Submission[] = (d.submissions ?? []).filter(
+          (s: Submission) => !scope || scope.includes(s.faculty_code)
+        );
+        setSubmissions(subs);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [router]);
@@ -369,7 +377,7 @@ export default function ExecutiveInsights() {
         </div>
         <div style={{ flex: 1 }} />
         <nav className="topbar__nav">
-          <a href="/approver">คำขออนุมัติ</a>
+          {!session.scope && <a href="/approver">คำขออนุมัติ</a>}
           <a href="/approver/mapping">Curriculum Mapping</a>
           <a href="/approver/insights" className="is-active">Executive Insights</a>
           <a href="/approver/faculty-readiness">Faculty Readiness</a>

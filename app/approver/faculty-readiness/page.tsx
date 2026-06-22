@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SESSION_KEY } from "@/lib/faculties";
+import { SESSION_KEY, FACULTIES } from "@/lib/faculties";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FRRow {
@@ -718,7 +718,7 @@ function FacultyReadinessDashboard({ data }: { data: FRRow[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function FacultyReadinessPage() {
   const router = useRouter();
-  const [session, setSession] = useState<{ name: string } | null>(null);
+  const [session, setSession] = useState<{ name: string; scope?: string[] } | null>(null);
   const [liveData, setLiveData] = useState<FRRow[] | null>(null);
   const [fetchError, setFetchError] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<string | null>(null);
@@ -757,7 +757,12 @@ export default function FacultyReadinessPage() {
     router.push("/login");
   };
 
-  const data: FRRow[] = liveData ?? [];
+  // Scoped viewers only see their faculties. FR data is keyed by faculty *name*,
+  // so map scope codes → names via FACULTIES.
+  const scopeNames = Array.isArray(session?.scope) && session!.scope!.length > 0
+    ? new Set(FACULTIES.filter((f) => session!.scope!.includes(f.code)).map((f) => f.name))
+    : null;
+  const data: FRRow[] = (liveData ?? []).filter((r) => !scopeNames || scopeNames.has(r.f));
   const isLive = liveData !== null && !fetchError;
   const isLoading = liveData === null && !fetchError;
 
@@ -813,7 +818,7 @@ export default function FacultyReadinessPage() {
         </div>
         <div style={{ flex:1 }} />
         <nav className="topbar__nav">
-          <a href="/approver">คำขออนุมัติ</a>
+          {!session.scope && <a href="/approver">คำขออนุมัติ</a>}
           <a href="/approver/mapping">Curriculum Mapping</a>
           <a href="/approver/insights">Executive Insights</a>
           <a href="/approver/faculty-readiness" className="is-active">Faculty Readiness</a>
