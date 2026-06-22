@@ -234,7 +234,14 @@ export default function ExecutiveInsights() {
       const allToolNames = all.flatMap((r) => splitTools((r as MappingRow).aiTool || ""));
       const toolCats = new Set(allToolNames.map((t) => categorizeTool(t)).filter(Boolean));
       const toolDiv = Math.min(1, toolCats.size / 5);
-      const ind = l2.length ? l2.filter((r) => r.sector === "industry").length / l2.length : 0;
+      // Industry linkage: threshold, not proportion. ≥1 distinct industry
+      // competency → 0.7, ≥2 → 1.0 (one industry tie-in already shows intent).
+      const indComps = new Set(
+        l2.filter((r) => r.sector === "industry")
+          .map((r) => (r.competency?.trim() || r.courseName?.trim() || ""))
+          .filter(Boolean)
+      ).size;
+      const ind = indComps >= 2 ? 1 : indComps === 1 ? 0.7 : 0;
       const score = Math.round((completeness * 0.20 + dimCov * 0.30 + depth * 0.25 + ind * 0.15 + toolDiv * 0.10) * 100);
       const topCatCounts: Record<string, number> = {};
       allToolNames.forEach((t) => { const c = categorizeTool(t); topCatCounts[c] = (topCatCounts[c] || 0) + 1; });
@@ -260,7 +267,7 @@ export default function ExecutiveInsights() {
       { key: "dimCoverage",  label: "ความครอบคลุมมิติ",         weight: 30, desc: "ครบ 4 มิติ UNESCO — Human/Ethics จาก L1, Techniques/Design จาก L1 หรือ L2" },
       { key: "depth",        label: "ความลึกของการใช้ AI",      weight: 25, desc: "ระดับ AI Consulted → Assisted → Generated (ไม่นับแถว AI Free Zone)" },
       { key: "completeness", label: "ความครบของการแมพ",       weight: 20, desc: "รายวิชาที่แมพแล้ว เทียบกับรายวิชาทั้งหมด" },
-      { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 15, desc: "สัดส่วนสมรรถนะจาก Industry ใน Layer 2" },
+      { key: "industry",     label: "การเชื่อมโยงอุตสาหกรรม",  weight: 15, desc: "มีสมรรถนะจาก Industry ใน Layer 2 — ตั้งแต่ 1 สมรรถนะได้ 70%, ตั้งแต่ 2 สมรรถนะได้ 100%" },
       { key: "toolDiv",      label: "ความหลากหลายของเครื่องมือ", weight: 10, desc: "จำนวนกลุ่มเครื่องมือ AI ที่ใช้ (จาก 5 กลุ่ม)" },
     ];
     const scoreFactors = FACTOR_DEFS.map((d) => ({
@@ -704,7 +711,7 @@ export default function ExecutiveInsights() {
               >
                 <div className="method__intro">
                   <b>AI-Ready Score</b> เป็นคะแนนผสม (composite) 0–100 ที่รวม <b>คุณภาพและความลึก</b> ของการออกแบบหลักสูตร
-                  <span className="method__formula">Score = (ความครบ × 40%) + (ครอบคลุมมิติ × 20%) + (ความลึก × 20%) + (หลากหลายเครื่องมือ × 10%) + (เชื่อมอุตสาหกรรม × 10%)</span>
+                  <span className="method__formula">Score = (ครอบคลุมมิติ × 30%) + (ความลึก × 25%) + (ความครบ × 20%) + (เชื่อมอุตสาหกรรม × 15%) + (หลากหลายเครื่องมือ × 10%)</span>
                 </div>
                 <div className="method-grid">
                   {insights.scoreFactors.map((f) => (
