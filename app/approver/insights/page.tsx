@@ -19,11 +19,20 @@ interface Submission {
 }
 
 // ─── Tool categorization ─────────────────────────────────────────────────────
+// Matched in order (llm → media → auto → data); first hit wins, no match → "domain".
+// "domain" is the catch-all for genuinely field-specific AI (BIM, Revit, D5,
+// Unity, Unreal, Westlaw, DoNotPay, …) — general-purpose tools belong above.
 const TOOL_KEYWORDS: Record<string, string[]> = {
-  llm:    ["chatgpt", "claude", "gemini", "gpt", "perplexity", "copilot", "llm", "bard", "mistral", "llama"],
-  media:  ["midjourney", "runway", "elevenlabs", "suno", "stable diffusion", "firefly", "dall", "figma ai", "image ai", "kling", "pika", "leonardo"],
-  auto:   ["n8n", "zapier", "make.com", "langchain", "api", "cursor", "github copilot", "automation", "agent", "workflow", "flowise"],
-  data:   ["code interpreter", "excel", "power bi", "julius", "tableau", "data", "analytics", "pandas", "superset"],
+  llm:    ["chatgpt", "claude", "gemini", "gpt", "perplexity", "copilot", "llm", "bard", "mistral", "llama",
+           "qwen", "deepseek", "grok", "meta ai", "ai studio"],
+  media:  ["midjourney", "runway", "elevenlabs", "suno", "stable diffusion", "firefly", "dall", "figma", "image ai", "kling", "pika", "leonardo",
+           "canva", "meshy", "prome", "gamma", "sora", "veo", "ideogram"],
+  auto:   ["n8n", "zapier", "make.com", "langchain", "api", "cursor", "github copilot", "automation", "agent", "workflow", "flowise",
+           "github", "postman", "automate", "apps script", "snyk", "owasp"],
+  data:   ["code interpreter", "excel", "power bi", "julius", "tableau", "data", "analytics", "pandas", "superset",
+           "colab", "hugging face", "pytorch", "tensorflow", "tensorboard", "scikit", "jupyter", "numpy", "statsmodels",
+           "rstudio", "rapidminer", "looker", "teachable machine", "mysql", "dbdiagram", "geogebra", "desmos",
+           "tradingview", "matlab", "spss", "delve", "scispace", "litmaps", "notebooklm"],
 };
 const CAT_META: Record<string, { label: string; color: string }> = {
   llm:    { label: "LLM / Chat",              color: "#1a4f8a" },
