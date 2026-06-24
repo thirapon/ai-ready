@@ -60,7 +60,7 @@ function StatusBadge({ status }: { status: Status }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ApproverDashboard() {
   const router = useRouter();
-  const [session, setSession] = useState<{ name: string } | null>(null);
+  const [session, setSession] = useState<{ name: string; scope?: string[] } | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("pending");
