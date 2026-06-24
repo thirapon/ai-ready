@@ -1078,6 +1078,28 @@ export default function ExecutiveInsights() {
           icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>}
           sub="วิเคราะห์ความสอดคล้องระหว่าง embedMethod + AI tools กับสมรรถนะที่หลักสูตรระบุ"
         >
+          {/* methodology note */}
+          <details style={{ marginBottom: 14 }}>
+            <summary style={{ fontSize: 12, color: "#677889", cursor: "pointer", userSelect: "none", listStyle: "none", display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              วิธีคิด — คลิกเพื่อดู
+            </summary>
+            <div style={{ marginTop: 10, padding: "12px 14px", background: "#f6f8fb", border: "1px solid #dde3eb", borderRadius: 8, fontSize: 12, color: "#3a4859", lineHeight: 1.8, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div><b>ตัวเลข % (คำนวณจาก L2 rows จริง)</b></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "3px 16px", color: "#677889" }}>
+                <span>• <b>Assisted %</b> — rows ที่ assisted = true</span>
+                <span>• <b>Consulted %</b> — rows ที่ consulted = true</span>
+                <span>• <b>Generated %</b> — rows ที่ generated = true</span>
+                <span>• <b>Specialist %</b> — rows ที่ toolType = "specialist"</span>
+              </div>
+              <div style={{ borderTop: "1px solid #dde3eb", paddingTop: 6, color: "#677889" }}>
+                <b>การประเมิน (Claude AI วิเคราะห์ในบทสนทนา)</b> — fit, strength, gap ได้จากการเทียบ tools + embedMethod กับ competency ที่หลักสูตรระบุ ไม่ได้ compute อัตโนมัติ ต้องรัน "update insights" เพื่อวิเคราะห์ใหม่เมื่อข้อมูลเปลี่ยน
+              </div>
+              <div style={{ color: "#677889" }}>
+                <b>Flag:</b> passive = assisted 100% + generated 0% · inconsistent = L2 เทคนิคแต่ L1 map เป็น Ethics ทั้งหมด
+              </div>
+            </div>
+          </details>
           {/* fit legend */}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
             {[
