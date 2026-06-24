@@ -114,6 +114,7 @@ export const unescoGapAnalysis = {
     {
       key: "human",
       name: "Human-centred Mindset",
+      required: true,
       strength: 67,
       progCount: 6,
       progTotal: 9,
@@ -125,6 +126,7 @@ export const unescoGapAnalysis = {
     {
       key: "ethics",
       name: "Ethics of AI",
+      required: true,
       strength: 67,
       progCount: 6,
       progTotal: 9,
@@ -136,28 +138,30 @@ export const unescoGapAnalysis = {
     {
       key: "techniques",
       name: "AI Techniques & Applications",
+      required: false,
       strength: 33,
       progCount: 3,
       progTotal: 9,
       status: "weak" as const,
-      label: "อ่อน — ต้องเสริม",
-      note: "เฉพาะ AI/Data, บัญชี, สถาปัตยกรรม — หลักสูตรสายสังคมศาสตร์ขาดทั้งหมด",
-      color: "#b53030",
+      label: "ไม่บังคับ — ใช้ L2 ทดแทนได้",
+      note: "เฉพาะ AI/Data, บัญชี, สถาปัตยกรรม — หลักสูตรสายสังคมศาสตร์ใช้ L2 competency แทน",
+      color: "#677889",
     },
     {
       key: "design",
       name: "AI System Design",
+      required: false,
       strength: 33,
       progCount: 3,
       progTotal: 9,
       status: "weak" as const,
-      label: "อ่อน — ต้องเสริม",
-      note: "เฉพาะ เกมฯ, AI/Data, สถาปัตยกรรม — ช่องว่างใหญ่สุดในระบบ",
-      color: "#b53030",
+      label: "ไม่บังคับ — ใช้ L2 ทดแทนได้",
+      note: "เฉพาะ เกมฯ, AI/Data, สถาปัตยกรรม — หลักสูตรที่ไม่เน้น technical ใช้ L2 ทดแทน",
+      color: "#677889",
     },
   ],
   recommendation:
-    "จากข้อมูล L1 จริง: Techniques และ Design คือช่องว่างใหญ่สุด (3/9 หลักสูตร) หลักสูตรสายสังคมศาสตร์/บริหาร ควรเพิ่ม competency ด้านการใช้ AI tools เชิงเทคนิคและการออกแบบระบบ AI อย่างน้อย 1 รายวิชา",
+    "มิติบังคับ (Human + Ethics) ครอบคลุม 6/9 หลักสูตร — ยังขาดอีก 3 หลักสูตรที่ต้องติดตาม ส่วน Techniques และ Design ไม่บังคับ สามารถใช้ L2 competency ทดแทนได้ตามบริบทของแต่ละสาขา",
 };
 
 // ─── UNESCO L1 Heatmap (real mapping data per program) ────────────────────────

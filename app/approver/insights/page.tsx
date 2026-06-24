@@ -945,18 +945,27 @@ export default function ExecutiveInsights() {
             sub="ความครอบคลุมมิติ UNESCO ในเนื้อหาสมรรถนะ"
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
-              {unescoGapAnalysis.dimensions.map((d) => (
-                <div key={d.key}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#14202e" }}>{d.name}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: d.status === "weak" ? "#fff0f0" : d.status === "good" ? "#eef4fb" : "#e6f4ec", color: d.color }}>{d.label}</span>
+              {unescoGapAnalysis.dimensions.map((d) => {
+                const reqBg  = d.required ? "#fdeaea" : "#f6f8fb";
+                const reqClr = d.required ? "#b53030" : "#677889";
+                const reqTxt = d.required ? "บังคับ" : "ไม่บังคับ";
+                const barBg  = d.required && d.status === "weak" ? "#fff0f0" : d.status === "good" ? "#eef4fb" : "#f6f8fb";
+                return (
+                  <div key={d.key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#14202e" }}>{d.name}</span>
+                        <span style={{ fontSize: 10.5, fontWeight: 700, padding: "1px 7px", borderRadius: 8, background: reqBg, color: reqClr }}>{reqTxt}</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, background: barBg, color: d.color }}>{d.label}</span>
+                    </div>
+                    <div style={{ height: 8, background: "#eef1f6", borderRadius: 4, overflow: "hidden", marginBottom: 4 }}>
+                      <div style={{ height: "100%", width: d.strength + "%", background: d.color, borderRadius: 4 }} />
+                    </div>
+                    <div style={{ fontSize: 12, color: "#677889" }}>{d.note}</div>
                   </div>
-                  <div style={{ height: 8, background: "#eef1f6", borderRadius: 4, overflow: "hidden", marginBottom: 4 }}>
-                    <div style={{ height: "100%", width: d.strength + "%", background: d.color, borderRadius: 4 }} />
-                  </div>
-                  <div style={{ fontSize: 12, color: "#677889" }}>{d.note}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div style={{ padding: "10px 12px", background: "#fff8e6", border: "1px solid #f0d080", borderRadius: 8, fontSize: 12.5, color: "#8a5800", lineHeight: 1.6 }}>
               💡 {unescoGapAnalysis.recommendation}
@@ -971,22 +980,23 @@ export default function ExecutiveInsights() {
           sub="ครอบคลุม UNESCO 4 มิติ จาก L1 mapping จริง (9/12 หลักสูตรที่ map แล้ว)"
         >
           {/* dimension legend */}
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6, alignItems: "center" }}>
             {[
-              { key: "human",      label: "Human",      color: "#1a4f8a" },
-              { key: "ethics",     label: "Ethics",     color: "#a86a14" },
-              { key: "techniques", label: "Techniques", color: "#137a4a" },
-              { key: "design",     label: "Design",     color: "#6a3eb5" },
+              { key: "human",      label: "Human",      color: "#1a4f8a", required: true },
+              { key: "ethics",     label: "Ethics",     color: "#a86a14", required: true },
+              { key: "techniques", label: "Techniques", color: "#137a4a", required: false },
+              { key: "design",     label: "Design",     color: "#6a3eb5", required: false },
             ].map(d => (
               <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
                 <div style={{ width: 12, height: 12, borderRadius: 3, background: d.color }} />
-                <span style={{ color: "#3a4859" }}>{d.label}</span>
+                <span style={{ color: "#3a4859" }}>{d.label}{d.required ? <sup style={{ color: "#b53030", fontWeight: 700 }}>*</sup> : ""}</span>
               </div>
             ))}
             <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
               <div style={{ width: 12, height: 12, borderRadius: 3, background: "#eef1f6", border: "1px solid #dde3eb" }} />
               <span style={{ color: "#8b99a8" }}>ยังไม่ map</span>
             </div>
+            <span style={{ fontSize: 11.5, color: "#b53030", marginLeft: 4 }}>* มิติบังคับ</span>
           </div>
           {/* table */}
           <div style={{ overflowX: "auto" }}>
@@ -995,12 +1005,14 @@ export default function ExecutiveInsights() {
                 <tr style={{ borderBottom: "2px solid #dde3eb" }}>
                   <th style={{ textAlign: "left", padding: "6px 10px", color: "#677889", fontWeight: 600 }}>หลักสูตร</th>
                   {[
-                    { key: "human",      label: "Human",      color: "#1a4f8a" },
-                    { key: "ethics",     label: "Ethics",     color: "#a86a14" },
-                    { key: "techniques", label: "Techniques", color: "#137a4a" },
-                    { key: "design",     label: "Design",     color: "#6a3eb5" },
+                    { key: "human",      label: "Human",      color: "#1a4f8a", required: true },
+                    { key: "ethics",     label: "Ethics",     color: "#a86a14", required: true },
+                    { key: "techniques", label: "Techniques", color: "#137a4a", required: false },
+                    { key: "design",     label: "Design",     color: "#6a3eb5", required: false },
                   ].map(d => (
-                    <th key={d.key} style={{ textAlign: "center", padding: "6px 10px", color: d.color, fontWeight: 600, minWidth: 90 }}>{d.label}</th>
+                    <th key={d.key} style={{ textAlign: "center", padding: "6px 10px", color: d.color, fontWeight: 600, minWidth: 90 }}>
+                      {d.label}{d.required ? <sup style={{ color: "#b53030" }}>*</sup> : ""}
+                    </th>
                   ))}
                   <th style={{ textAlign: "center", padding: "6px 10px", color: "#677889", fontWeight: 600 }}>coverage</th>
                 </tr>
@@ -1009,7 +1021,7 @@ export default function ExecutiveInsights() {
                 {unescoHeatmap.map((row, i) => {
                   const dims = ["human","ethics","techniques","design"] as const;
                   const dimColors: Record<string, string> = { human: "#1a4f8a", ethics: "#a86a14", techniques: "#137a4a", design: "#6a3eb5" };
-                  const covered = dims.filter(d => row[d] > 0).length;
+                  const reqCovered = (["human","ethics"] as const).filter(d => row[d] > 0).length;
                   return (
                     <tr key={row.prog} style={{ borderBottom: "1px solid #eef1f6", background: i % 2 === 0 ? "white" : "#fafbfc" }}>
                       <td style={{ padding: "8px 10px", color: "#14202e", fontWeight: 500 }}>
@@ -1035,11 +1047,13 @@ export default function ExecutiveInsights() {
                         {!row.mapped ? (
                           <span style={{ fontSize: 11, color: "#8b99a8", background: "#f6f8fb", padding: "2px 8px", borderRadius: 10 }}>ยังไม่ map</span>
                         ) : (
-                          <span style={{
-                            fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
-                            background: covered >= 3 ? "#e6f4ec" : covered >= 2 ? "#fff8e6" : "#fdeaea",
-                            color:      covered >= 3 ? "#137a4a" : covered >= 2 ? "#a86a14" : "#b53030",
-                          }}>{covered}/4</span>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                            <span style={{
+                              fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
+                              background: reqCovered === 2 ? "#e6f4ec" : reqCovered === 1 ? "#fff8e6" : "#fdeaea",
+                              color:      reqCovered === 2 ? "#137a4a" : reqCovered === 1 ? "#a86a14" : "#b53030",
+                            }}>{reqCovered}/2<sup style={{ fontSize: 9 }}>*</sup></span>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -1048,8 +1062,13 @@ export default function ExecutiveInsights() {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 12, padding: "10px 12px", background: "#fdeaea", border: "1px solid #f0b8b8", borderRadius: 8, fontSize: 12.5, color: "#8a0000", lineHeight: 1.6 }}>
-            ⚠️ Techniques และ Design ครอบคลุมเพียง 3/9 หลักสูตร — ช่องว่างใหญ่สุดใน UNESCO framework ที่ต้องแก้ไข
+          <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 240, padding: "10px 12px", background: "#fdeaea", border: "1px solid #f0b8b8", borderRadius: 8, fontSize: 12.5, color: "#8a0000", lineHeight: 1.6 }}>
+              ⚠️ <b>มิติบังคับ (Human + Ethics)</b> ยังขาดอีก 3/9 หลักสูตร — ต้องติดตามให้ครบก่อน certification
+            </div>
+            <div style={{ flex: 1, minWidth: 240, padding: "10px 12px", background: "#f6f8fb", border: "1px solid #dde3eb", borderRadius: 8, fontSize: 12.5, color: "#677889", lineHeight: 1.6 }}>
+              ℹ️ <b>Techniques และ Design</b> ไม่บังคับ — หลักสูตรที่ขาดสามารถใช้ L2 competency ทดแทนได้
+            </div>
           </div>
         </InsCard>
 
