@@ -142,31 +142,45 @@ const get = (k) => { const m = env.match(new RegExp(k+'="?(.+?)"?\\s*$', 'm')); 
 // col 17 = qb (อยากพัฒนาอะไร), col 18 = qc (ต้องการ support อะไร)
 ```
 
-**3. วิเคราะห์ใน Claude conversation แล้ว overwrite**
-อัปเดต `lib/insights-static.ts` — 7 exports:
+**3. ดึงข้อมูล Layer 1 และ Layer 2 mapping จาก Supabase**
+```javascript
+// เพิ่มใน query: .select('faculty_name,program_name,layer1_mapping,layer2_mapping')
+// layer1_mapping fields ที่ใช้: dimension (human/ethics/techniques/design), competency
+// layer2_mapping fields ที่ใช้: sector, competency, embedMethod, aiTool, aiUsage,
+//   toolType, assisted, generated, consulted, freeZone
+```
+
+**4. วิเคราะห์ใน Claude conversation แล้ว overwrite**
+อัปเดต `lib/insights-static.ts` — 9 exports:
 - `executiveSummary` — narrative ภาพรวม
 - `developmentThemes` — clusters จาก qb
 - `supportNeeds` — priority items จาก qc
-- `competencyPatterns` — กลุ่มสมรรถนะจาก competencies
-- `unescoGapAnalysis` — ความครอบคลุม 4 มิติ
+- `competencyPatterns` — กลุ่มสมรรถนะจาก form_data.competencies
+- `unescoGapAnalysis` — ความครอบคลุม 4 มิติ จาก L1 จริง (progCount/progTotal)
+- `unescoHeatmap` — per-program L1 dimension data (human/ethics/techniques/design count)
+- `l2Assessment` — per-program embed/tool analysis (fit, embedDepth, topTools, mode bars, flag)
 - `curriculumCharacter` — ลักษณะรายคณะ
 - `toolsGap` — tools ในหลักสูตร vs ที่อาจารย์ต้องการ
 
 อัปเดต `INSIGHTS_GENERATED_AT` เป็นวันที่วันนั้น
 
-**4. Deploy สู่ production**
+**5. Deploy สู่ production**
 ```bash
 git add lib/insights-static.ts
 git commit -m "Insights: update static AI analysis (YYYY-MM-DD)"
-git push
-# merge PR → main → Vercel auto-deploy
+# push ตรงไปที่ main (ไม่ต้องสร้าง PR):
+cd "/Users/gim/Documents/Claude/Code/AI Ready"
+git push origin main
+# Vercel auto-deploy
 ```
 
 ### แหล่งข้อมูล
 | Source | Field | ใช้สำหรับ |
 |---|---|---|
-| Supabase `submissions` | `form_data.competencies` | Pattern, Gap, Curriculum Character |
+| Supabase `submissions` | `form_data.competencies` | Pattern, Curriculum Character |
 | Supabase `submissions` | `form_data.sectors` | Industry linkage |
+| Supabase `submissions` | `layer1_mapping.dimension` | UNESCO Heatmap, Gap Analysis |
+| Supabase `submissions` | `layer2_mapping.*` | L2 Assessment (embed/tool fit) |
 | Google Sheets col 17 | `qb` | Development themes |
 | Google Sheets col 18 | `qc` | Support needs |
 | Google Sheets col 8–12 | `d1–d4, score` | Faculty readiness scores |

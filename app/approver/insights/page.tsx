@@ -14,6 +14,8 @@ import {
   supportNeeds,
   competencyPatterns,
   unescoGapAnalysis,
+  unescoHeatmap,
+  l2Assessment,
   curriculumCharacter,
   toolsGap,
 } from "@/lib/insights-static";
@@ -859,6 +861,174 @@ export default function ExecutiveInsights() {
             </div>
           </InsCard>
         </div>
+
+        {/* UNESCO L1 Heatmap */}
+        <InsCard
+          title="UNESCO L1 Coverage Heatmap"
+          icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>}
+          sub="ครอบคลุม UNESCO 4 มิติ จาก L1 mapping จริง (9/12 หลักสูตรที่ map แล้ว)"
+        >
+          {/* dimension legend */}
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+            {[
+              { key: "human",      label: "Human",      color: "#1a4f8a" },
+              { key: "ethics",     label: "Ethics",     color: "#a86a14" },
+              { key: "techniques", label: "Techniques", color: "#137a4a" },
+              { key: "design",     label: "Design",     color: "#6a3eb5" },
+            ].map(d => (
+              <div key={d.key} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
+                <div style={{ width: 12, height: 12, borderRadius: 3, background: d.color }} />
+                <span style={{ color: "#3a4859" }}>{d.label}</span>
+              </div>
+            ))}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
+              <div style={{ width: 12, height: 12, borderRadius: 3, background: "#eef1f6", border: "1px solid #dde3eb" }} />
+              <span style={{ color: "#8b99a8" }}>ยังไม่ map</span>
+            </div>
+          </div>
+          {/* table */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid #dde3eb" }}>
+                  <th style={{ textAlign: "left", padding: "6px 10px", color: "#677889", fontWeight: 600 }}>หลักสูตร</th>
+                  {[
+                    { key: "human",      label: "Human",      color: "#1a4f8a" },
+                    { key: "ethics",     label: "Ethics",     color: "#a86a14" },
+                    { key: "techniques", label: "Techniques", color: "#137a4a" },
+                    { key: "design",     label: "Design",     color: "#6a3eb5" },
+                  ].map(d => (
+                    <th key={d.key} style={{ textAlign: "center", padding: "6px 10px", color: d.color, fontWeight: 600, minWidth: 90 }}>{d.label}</th>
+                  ))}
+                  <th style={{ textAlign: "center", padding: "6px 10px", color: "#677889", fontWeight: 600 }}>coverage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unescoHeatmap.map((row, i) => {
+                  const dims = ["human","ethics","techniques","design"] as const;
+                  const dimColors: Record<string, string> = { human: "#1a4f8a", ethics: "#a86a14", techniques: "#137a4a", design: "#6a3eb5" };
+                  const covered = dims.filter(d => row[d] > 0).length;
+                  return (
+                    <tr key={row.prog} style={{ borderBottom: "1px solid #eef1f6", background: i % 2 === 0 ? "white" : "#fafbfc" }}>
+                      <td style={{ padding: "8px 10px", color: "#14202e", fontWeight: 500 }}>
+                        <div>{row.shortProg}</div>
+                        <div style={{ fontSize: 11, color: "#8b99a8" }}>{row.fac}</div>
+                      </td>
+                      {dims.map(d => (
+                        <td key={d} style={{ textAlign: "center", padding: "8px 6px" }}>
+                          {!row.mapped ? (
+                            <span style={{ color: "#b9c3cf", fontSize: 11 }}>—</span>
+                          ) : row[d] > 0 ? (
+                            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, background: dimColors[d] + "18", border: `1px solid ${dimColors[d]}40` }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: dimColors[d] }}>{row[d]}</span>
+                            </div>
+                          ) : (
+                            <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, background: "#eef1f6" }}>
+                              <span style={{ fontSize: 11, color: "#b9c3cf" }}>0</span>
+                            </div>
+                          )}
+                        </td>
+                      ))}
+                      <td style={{ textAlign: "center", padding: "8px 10px" }}>
+                        {!row.mapped ? (
+                          <span style={{ fontSize: 11, color: "#8b99a8", background: "#f6f8fb", padding: "2px 8px", borderRadius: 10 }}>ยังไม่ map</span>
+                        ) : (
+                          <span style={{
+                            fontSize: 12, fontWeight: 700, padding: "2px 10px", borderRadius: 10,
+                            background: covered >= 3 ? "#e6f4ec" : covered >= 2 ? "#fff8e6" : "#fdeaea",
+                            color:      covered >= 3 ? "#137a4a" : covered >= 2 ? "#a86a14" : "#b53030",
+                          }}>{covered}/4</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 12, padding: "10px 12px", background: "#fdeaea", border: "1px solid #f0b8b8", borderRadius: 8, fontSize: 12.5, color: "#8a0000", lineHeight: 1.6 }}>
+            ⚠️ Techniques และ Design ครอบคลุมเพียง 3/9 หลักสูตร — ช่องว่างใหญ่สุดใน UNESCO framework ที่ต้องแก้ไข
+          </div>
+        </InsCard>
+
+        {/* L2 AI Embed & Tool Assessment */}
+        <InsCard
+          title="L2 AI Embed & Tool Assessment"
+          icon={<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>}
+          sub="วิเคราะห์ความสอดคล้องระหว่าง embedMethod + AI tools กับสมรรถนะที่หลักสูตรระบุ"
+        >
+          {/* fit legend */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+            {[
+              { label: "Strong fit", color: "#137a4a", bg: "#e6f4ec" },
+              { label: "Good fit",   color: "#1a4f8a", bg: "#eef4fb" },
+              { label: "Moderate",   color: "#a86a14", bg: "#fff8e6" },
+              { label: "⚠️ Flag",    color: "#b53030", bg: "#fdeaea" },
+            ].map(l => (
+              <span key={l.label} style={{ fontSize: 11.5, fontWeight: 600, padding: "2px 10px", borderRadius: 10, background: l.bg, color: l.color }}>{l.label}</span>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+            {l2Assessment.filter(a => a.fit !== "none").map(a => {
+              const fitColor  = a.fit === "strong" ? "#137a4a" : a.fit === "good" ? "#1a4f8a" : "#a86a14";
+              const fitBg     = a.fit === "strong" ? "#e6f4ec" : a.fit === "good" ? "#eef4fb" : "#fff8e6";
+              const fitLabel  = a.fit === "strong" ? "Strong fit" : a.fit === "good" ? "Good fit" : "Moderate";
+              const flagColor = a.flag === "passive" ? "#a86a14" : a.flag === "inconsistent" ? "#b53030" : null;
+              const flagText  = a.flag === "passive" ? "⚠️ Passive AI use" : a.flag === "inconsistent" ? "⚠️ L1–L2 inconsistent" : null;
+              const bars = [
+                { label: "Assisted",   pct: a.assistedPct,   color: "#1a4f8a" },
+                { label: "Consulted",  pct: a.consultedPct,  color: "#0f7b6c" },
+                { label: "Generated",  pct: a.generatedPct,  color: "#6a3eb5" },
+                { label: "Specialist", pct: a.specialistPct, color: "#b6620e" },
+              ];
+              return (
+                <div key={a.prog} style={{ border: "1px solid #dde3eb", borderRadius: 10, padding: "12px 14px", borderTop: `3px solid ${fitColor}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: "#14202e" }}>{a.shortProg}</div>
+                      <div style={{ fontSize: 11, color: "#677889" }}>{a.entries} entries</div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 8, background: fitBg, color: fitColor }}>{fitLabel}</span>
+                      {flagText && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8, background: "#fdeaea", color: flagColor! }}>{flagText}</span>}
+                    </div>
+                  </div>
+                  {/* AI mode bars */}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 12px", marginBottom: 10 }}>
+                    {bars.map(b => (
+                      <div key={b.label}>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "#677889", marginBottom: 2 }}>
+                          <span>{b.label}</span><span style={{ fontWeight: 600, color: b.color }}>{b.pct}%</span>
+                        </div>
+                        <div style={{ height: 4, borderRadius: 2, background: "#eef1f6" }}>
+                          <div style={{ height: 4, borderRadius: 2, background: b.color, width: `${b.pct}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* top tools */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+                    {a.topTools.map(t => (
+                      <span key={t} style={{ fontSize: 10.5, padding: "2px 7px", borderRadius: 6, background: "#f6f8fb", border: "1px solid #dde3eb", color: "#3a4859" }}>{t}</span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#137a4a", marginBottom: 4 }}>✓ {a.strength}</div>
+                  <div style={{ fontSize: 11.5, color: "#677889" }}>△ {a.gap}</div>
+                </div>
+              );
+            })}
+          </div>
+          {/* programs with no L2 */}
+          {(() => {
+            const noL2 = l2Assessment.filter(a => a.flag === "no-l2");
+            if (!noL2.length) return null;
+            return (
+              <div style={{ marginTop: 12, padding: "10px 12px", background: "#f6f8fb", border: "1px solid #dde3eb", borderRadius: 8, fontSize: 12.5, color: "#677889" }}>
+                ยังไม่มีข้อมูล L2: {noL2.map(a => a.shortProg).join(", ")}
+              </div>
+            );
+          })()}
+        </InsCard>
 
         {/* Curriculum Character */}
         <InsCard
