@@ -1090,10 +1090,10 @@ export default function ExecutiveInsights() {
                 <span>• <b>Assisted %</b> — rows ที่ assisted = true</span>
                 <span>• <b>Consulted %</b> — rows ที่ consulted = true</span>
                 <span>• <b>Generated %</b> — rows ที่ generated = true</span>
-                <span>• <b>Specialist %</b> — rows ที่ toolType = "specialist"</span>
+                <span>• <b>Specialist %</b> — rows ที่ toolType = &ldquo;specialist&rdquo;</span>
               </div>
               <div style={{ borderTop: "1px solid #dde3eb", paddingTop: 6, color: "#677889" }}>
-                <b>การประเมิน (Claude AI วิเคราะห์ในบทสนทนา)</b> — fit, strength, gap ได้จากการเทียบ tools + embedMethod กับ competency ที่หลักสูตรระบุ ไม่ได้ compute อัตโนมัติ ต้องรัน "update insights" เพื่อวิเคราะห์ใหม่เมื่อข้อมูลเปลี่ยน
+                <b>การประเมิน (Claude AI วิเคราะห์ในบทสนทนา)</b> — fit, strength, gap ได้จากการเทียบ tools + embedMethod กับ competency ที่หลักสูตรระบุ ไม่ได้ compute อัตโนมัติ ต้องรัน &ldquo;update insights&rdquo; เพื่อวิเคราะห์ใหม่เมื่อข้อมูลเปลี่ยน
               </div>
               <div style={{ color: "#677889" }}>
                 <b>Flag:</b> passive = assisted 100% + generated 0% · inconsistent = L2 เทคนิคแต่ L1 map เป็น Ethics ทั้งหมด
