@@ -111,6 +111,7 @@ export default function ExecutiveInsights() {
     try {
       const sess = JSON.parse(raw);
       if (sess.role !== "approver") { router.replace("/login"); return; }
+      if (sess.scope) { router.replace("/approver/mapping"); return; }
       setSession(sess);
     } catch { router.replace("/login"); return; }
 
