@@ -115,3 +115,61 @@ npm run lint    # ESLint
 3. Build `app/approver/` dashboard
 4. Create `lib/supabase.ts` — browser and server Supabase client helpers
 5. Add `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## Claude AI Insights Workflow
+
+### ทำงานอย่างไร
+Insights ใน `/approver/insights` แบ่งเป็น 2 ส่วน:
+- **Part A** (computed) — คำนวณจาก Layer 1/2 mapping แบบ real-time
+- **Part B** (static) — วิเคราะห์โดย Claude ในบทสนทนา แล้ว hardcode ใน `lib/insights-static.ts`
+
+### เมื่อพี่พิมพ์ "update insights"
+ทำตามลำดับนี้:
+
+**1. ดึงข้อมูล Supabase**
+```javascript
+// รัน node script จาก project root
+const { createClient } = require('@supabase/supabase-js');
+// ดึง submissions table — form_data.competencies, sectors, faculty_name, status
+```
+
+**2. ดึงข้อมูล Google Sheets Faculty Readiness**
+```javascript
+// ต้องใช้ NODE_OPTIONS=--openssl-legacy-provider
+// ใช้ regex นี้ extract private key:
+const get = (k) => { const m = env.match(new RegExp(k+'="?(.+?)"?\\s*$', 'm')); return m ? m[1].trim().replace(/\\n/g,'\n') : ''; };
+// Range: 'Raw Data!A2:T'
+// col 17 = qb (อยากพัฒนาอะไร), col 18 = qc (ต้องการ support อะไร)
+```
+
+**3. วิเคราะห์ใน Claude conversation แล้ว overwrite**
+อัปเดต `lib/insights-static.ts` — 7 exports:
+- `executiveSummary` — narrative ภาพรวม
+- `developmentThemes` — clusters จาก qb
+- `supportNeeds` — priority items จาก qc
+- `competencyPatterns` — กลุ่มสมรรถนะจาก competencies
+- `unescoGapAnalysis` — ความครอบคลุม 4 มิติ
+- `curriculumCharacter` — ลักษณะรายคณะ
+- `toolsGap` — tools ในหลักสูตร vs ที่อาจารย์ต้องการ
+
+อัปเดต `INSIGHTS_GENERATED_AT` เป็นวันที่วันนั้น
+
+**4. Deploy สู่ production**
+```bash
+git add lib/insights-static.ts
+git commit -m "Insights: update static AI analysis (YYYY-MM-DD)"
+git push
+# merge PR → main → Vercel auto-deploy
+```
+
+### แหล่งข้อมูล
+| Source | Field | ใช้สำหรับ |
+|---|---|---|
+| Supabase `submissions` | `form_data.competencies` | Pattern, Gap, Curriculum Character |
+| Supabase `submissions` | `form_data.sectors` | Industry linkage |
+| Google Sheets col 17 | `qb` | Development themes |
+| Google Sheets col 18 | `qc` | Support needs |
+| Google Sheets col 8–12 | `d1–d4, score` | Faculty readiness scores |
+
+### หน้าที่แสดงผล
+`/approver/insights` — ส่วน Claude AI Insights อยู่ด้านล่างของหน้า ต่อจาก Part A (computed)
