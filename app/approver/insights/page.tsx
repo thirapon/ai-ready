@@ -1106,7 +1106,7 @@ export default function ExecutiveInsights() {
                 <div key={a.prog} style={{ border: "1px solid #dde3eb", borderRadius: 10, padding: "12px 14px", borderTop: `3px solid ${fitColor}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 13.5, color: "#14202e" }}>{a.shortProg}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: "#14202e", lineHeight: 1.3 }}>{a.prog}</div>
                       <div style={{ fontSize: 11, color: "#677889" }}>{a.entries} entries</div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
@@ -1145,7 +1145,7 @@ export default function ExecutiveInsights() {
             if (!noL2.length) return null;
             return (
               <div style={{ marginTop: 12, padding: "10px 12px", background: "#f6f8fb", border: "1px solid #dde3eb", borderRadius: 8, fontSize: 12.5, color: "#677889" }}>
-                ยังไม่มีข้อมูล L2: {noL2.map(a => a.shortProg).join(", ")}
+                ยังไม่มีข้อมูล L2: {noL2.map(a => a.prog).join(", ")}
               </div>
             );
           })()}
