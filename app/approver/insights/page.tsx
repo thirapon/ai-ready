@@ -1024,8 +1024,8 @@ export default function ExecutiveInsights() {
                   const reqCovered = (["human","ethics"] as const).filter(d => row[d] > 0).length;
                   return (
                     <tr key={row.prog} style={{ borderBottom: "1px solid #eef1f6", background: i % 2 === 0 ? "white" : "#fafbfc" }}>
-                      <td style={{ padding: "8px 10px", color: "#14202e", fontWeight: 500 }}>
-                        <div>{row.shortProg}</div>
+                      <td style={{ padding: "8px 10px", color: "#14202e", fontWeight: 500, minWidth: 160 }}>
+                        <div style={{ fontSize: 12.5 }}>{row.prog}</div>
                         <div style={{ fontSize: 11, color: "#8b99a8" }}>{row.fac}</div>
                       </td>
                       {dims.map(d => (
