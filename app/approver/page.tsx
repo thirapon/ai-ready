@@ -160,7 +160,7 @@ export default function ApproverDashboard() {
         <nav className="topbar__nav">
           <a href="/approver" className="is-active">คำขออนุมัติ</a>
           <a href="/approver/mapping">Curriculum Mapping</a>
-          <a href="/approver/insights">Executive Insights</a>
+          {!session.scope && <a href="/approver/insights">Executive Insights</a>}
           <a href="/approver/faculty-readiness">Faculty Readiness</a>
         </nav>
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
