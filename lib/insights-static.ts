@@ -1,16 +1,16 @@
 // ─── Static AI-generated insights ────────────────────────────────────────────
-// Generated: 2026-06-24
-// Source: 77 Faculty Readiness responses (Google Sheets) + 12 curriculum submissions (Supabase)
+// Generated: 2026-06-25
+// Source: 79 Faculty Readiness responses (Google Sheets) + 13 curriculum submissions (Supabase)
 // To update: pull fresh data → analyze in Claude conversation → overwrite this file
 
-export const INSIGHTS_GENERATED_AT = "2026-06-24";
-export const INSIGHTS_FACULTY_TOTAL = 77;
-export const INSIGHTS_PROGRAMS_TOTAL = 12;
+export const INSIGHTS_GENERATED_AT = "2026-06-25";
+export const INSIGHTS_FACULTY_TOTAL = 79;
+export const INSIGHTS_PROGRAMS_TOTAL = 13;
 
 // ─── Executive Summary ────────────────────────────────────────────────────────
 export const executiveSummary = `มหาวิทยาลัยกรุงเทพมีคณาจารย์กว่า 70% อยู่ในระดับ AI Integrator–Champion ซึ่งถือว่าสูงกว่าค่าเฉลี่ยสถาบันการศึกษาทั่วไป แต่ความพร้อมนี้ยังถูกขัดขวางโดยอุปสรรค 3 ประการหลัก ได้แก่ การขาด institutional AI license สำหรับใช้ในการสอน การไม่มีสื่อการสอนสำเร็จรูปที่พร้อมใช้ทันที และภาระงานสอนที่ไม่เปิดพื้นที่ให้อาจารย์พัฒนาตนเองด้าน AI ได้อย่างจริงจัง
 
-ด้านหลักสูตร มี 12 โปรแกรมส่งแผน AI Competency แล้ว ครอบคลุม 5 คณะ ทุกหลักสูตรมี pattern ร่วมกันคือเริ่มต้นด้วย AI Literacy ในปีที่ 1 และปิดท้ายด้วย Responsible AI หรือ Professional Practice ในปีที่ 4 สอดคล้องกับ UNESCO AI Competency Framework เป็นอย่างดี อย่างไรก็ตาม มิติ Human-centred ยังเป็นจุดอ่อนที่พบในเกือบทุกหลักสูตร
+ด้านหลักสูตร มี 13 โปรแกรมส่งแผน AI Competency แล้ว ครอบคลุม 6 คณะ — ล่าสุดคณะนิติศาสตร์เข้าร่วมพร้อม L2 ที่แข็งแกร่งที่สุดในกลุ่ม Social Science (generated 60%, Westlaw integration) ทุกหลักสูตรมี pattern ร่วมกันคือเริ่มต้นด้วย AI Literacy ในปีที่ 1 และปิดท้ายด้วย Responsible AI หรือ Professional Practice ในปีที่ 4 สอดคล้องกับ UNESCO AI Competency Framework เป็นอย่างดี อย่างไรก็ตาม มิติ Techniques และ Design ใน L1 ยังครอบคลุมเพียง 3/10 หลักสูตร แต่เป็นมิติที่ไม่บังคับ — หลักสูตรที่ขาดสามารถใช้ L2 competency ทดแทนได้
 
 ข้อเสนอเร่งด่วนสำหรับผู้บริหาร: จัดหา institutional AI license ระดับ Pro ให้บุคลากร และออกแนวนโยบาย academic integrity ด้าน AI พร้อม student AI usage guideline ก่อนเปิดภาคการศึกษา 2/2568`;
 
@@ -99,13 +99,13 @@ export const supportNeeds = [
 
 // ─── Competency Patterns ──────────────────────────────────────────────────────
 export const competencyPatterns = [
-  { name: "AI Literacy & Fundamentals",    count: 12, total: 12, years: "ปี 1",     pct: 100, color: "#1a4f8a" },
-  { name: "AI in Professional Practice",   count: 11, total: 12, years: "ปี 3–4",   pct: 92,  color: "#0f7b6c" },
-  { name: "Responsible AI & Ethics",       count: 10, total: 12, years: "ปี 2–4",   pct: 83,  color: "#b53030" },
-  { name: "Generative AI / Creative AI",   count: 7,  total: 12, years: "ปี 2–3",   pct: 58,  color: "#6a3eb5" },
-  { name: "Data Analytics & ML",           count: 7,  total: 12, years: "ปี 2–4",   pct: 58,  color: "#b6620e" },
-  { name: "AI System Design",              count: 5,  total: 12, years: "ปี 3–4",   pct: 42,  color: "#677889" },
-  { name: "Deployment & Governance",       count: 4,  total: 12, years: "ปี 4",     pct: 33,  color: "#3a4859" },
+  { name: "AI Literacy & Fundamentals",    count: 13, total: 13, years: "ปี 1",     pct: 100, color: "#1a4f8a" },
+  { name: "AI in Professional Practice",   count: 12, total: 13, years: "ปี 3–4",   pct: 92,  color: "#0f7b6c" },
+  { name: "Responsible AI & Ethics",       count: 11, total: 13, years: "ปี 2–4",   pct: 85,  color: "#b53030" },
+  { name: "Generative AI / Creative AI",   count: 7,  total: 13, years: "ปี 2–3",   pct: 54,  color: "#6a3eb5" },
+  { name: "Data Analytics & ML",           count: 7,  total: 13, years: "ปี 2–4",   pct: 54,  color: "#b6620e" },
+  { name: "AI System Design",              count: 5,  total: 13, years: "ปี 3–4",   pct: 38,  color: "#677889" },
+  { name: "Deployment & Governance",       count: 4,  total: 13, years: "ปี 4",     pct: 31,  color: "#3a4859" },
 ];
 
 // ─── UNESCO Gap Analysis (from real L1 mapping data) ─────────────────────────
@@ -115,45 +115,45 @@ export const unescoGapAnalysis = {
       key: "human",
       name: "Human-centred Mindset",
       required: true,
-      strength: 67,
-      progCount: 6,
-      progTotal: 9,
+      strength: 70,
+      progCount: 7,
+      progTotal: 10,
       status: "good" as const,
       label: "ดี",
-      note: "6/9 หลักสูตรครอบคลุม — ส่วนใหญ่มีเพียง 1 entry",
+      note: "7/10 หลักสูตรครอบคลุม — สถาปัตยกรรม, บัญชี, CE/Robot ยังขาด",
       color: "#1a4f8a",
     },
     {
       key: "ethics",
       name: "Ethics of AI",
       required: true,
-      strength: 67,
-      progCount: 6,
-      progTotal: 9,
+      strength: 70,
+      progCount: 7,
+      progTotal: 10,
       status: "good" as const,
       label: "ดี",
-      note: "6/9 หลักสูตร — วิศวกรรมคอมพิวเตอร์ฯ map ethics 7 entries แต่ขาดมิติอื่น",
+      note: "7/10 หลักสูตร — สถาปัตยกรรม, เกมฯ, บัญชี ยังขาด (CE/Robot map ethics 7 entries)",
       color: "#a86a14",
     },
     {
       key: "techniques",
       name: "AI Techniques & Applications",
       required: false,
-      strength: 33,
+      strength: 30,
       progCount: 3,
-      progTotal: 9,
+      progTotal: 10,
       status: "weak" as const,
       label: "ไม่บังคับ — ใช้ L2 ทดแทนได้",
-      note: "เฉพาะ AI/Data, บัญชี, สถาปัตยกรรม — หลักสูตรสายสังคมศาสตร์ใช้ L2 competency แทน",
+      note: "เฉพาะ AI/Data, บัญชี, สถาปัตยกรรม — หลักสูตรสายสังคมศาสตร์และกฎหมายใช้ L2 competency แทน",
       color: "#677889",
     },
     {
       key: "design",
       name: "AI System Design",
       required: false,
-      strength: 33,
+      strength: 30,
       progCount: 3,
-      progTotal: 9,
+      progTotal: 10,
       status: "weak" as const,
       label: "ไม่บังคับ — ใช้ L2 ทดแทนได้",
       note: "เฉพาะ เกมฯ, AI/Data, สถาปัตยกรรม — หลักสูตรที่ไม่เน้น technical ใช้ L2 ทดแทน",
@@ -161,7 +161,7 @@ export const unescoGapAnalysis = {
     },
   ],
   recommendation:
-    "มิติบังคับ (Human + Ethics) ครอบคลุม 6/9 หลักสูตร — ยังขาดอีก 3 หลักสูตรที่ต้องติดตาม ส่วน Techniques และ Design ไม่บังคับ สามารถใช้ L2 competency ทดแทนได้ตามบริบทของแต่ละสาขา",
+    "มิติบังคับ (Human + Ethics) ครอบคลุม 7/10 หลักสูตรที่ map แล้ว — สถาปัตยกรรม/บัญชี/เกมฯ ยังขาดบางมิติบังคับ ต้องติดตามก่อน certification ส่วน Techniques และ Design ไม่บังคับ สามารถใช้ L2 competency ทดแทนได้ตามบริบทของแต่ละสาขา",
 };
 
 // ─── UNESCO L1 Heatmap (real mapping data per program) ────────────────────────
@@ -174,8 +174,9 @@ export const unescoHeatmap = [
   { prog: "การวางแผนการเงินฯ",    shortProg: "การเงินฯ",      fac: "เศรษฐศาสตร์ฯ",             human: 1, ethics: 1, techniques: 0, design: 0, mapped: true },
   { prog: "เทคโนโลยีสารสนเทศ",    shortProg: "IT",            fac: "เทคโนโลยีสารสนเทศฯ",       human: 1, ethics: 1, techniques: 0, design: 0, mapped: true },
   { prog: "การบัญชี",             shortProg: "บัญชี",         fac: "บัญชี",                    human: 0, ethics: 0, techniques: 2, design: 0, mapped: true },
-  { prog: "วิศวกรรมคอมพิวเตอร์ฯ", shortProg: "CE/Robot",      fac: "วิศวกรรมศาสตร์",           human: 0, ethics: 7, techniques: 0, design: 0, mapped: true },
-  { prog: "วิศวกรรมมัลติมีเดียฯ", shortProg: "Multimedia",    fac: "วิศวกรรมศาสตร์",           human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
+  { prog: "วิศวกรรมคอมพิวเตอร์และหุ่นยนต์", shortProg: "CE/Robot",      fac: "วิศวกรรมศาสตร์",           human: 0, ethics: 7, techniques: 0, design: 0, mapped: true },
+  { prog: "นิติศาสตร์",            shortProg: "นิติศาสตร์",   fac: "นิติศาสตร์",               human: 2, ethics: 1, techniques: 0, design: 0, mapped: true },
+  { prog: "วิศวกรรมมัลติมีเดียและเอ็นเทอร์เทนเมนต์", shortProg: "Multimedia",    fac: "วิศวกรรมศาสตร์",           human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
   { prog: "วิศวกรรมไฟฟ้า",        shortProg: "ไฟฟ้า",         fac: "วิศวกรรมศาสตร์",           human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
   { prog: "สถาปัตยกรรมภายใน",     shortProg: "สถาปัตย์ภายใน", fac: "สถาปัตยกรรมศาสตร์",        human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
 ];
@@ -302,6 +303,21 @@ export const l2Assessment = [
     gap: "ไม่มีข้อมูล AI tools ในฐานข้อมูล และ L1 map ทั้งหมดเป็น Ethics ไม่สอดคล้องกับ L2 เทคนิค",
     flag: "inconsistent" as null | "passive" | "inconsistent" | "no-l2",
   },
+  {
+    prog: "นิติศาสตร์",
+    shortProg: "นิติศาสตร์",
+    entries: 15,
+    fit: "good" as const,
+    embedDepth: "medium" as const,
+    topTools: ["Microsoft Copilot", "ChatGPT", "Claude", "Westlaw"],
+    specialistPct: 27,
+    assistedPct: 93,
+    generatedPct: 60,
+    consultedPct: 80,
+    strength: "Generated (60%) + Consulted (80%) สูงที่สุดในกลุ่ม Social Science — Westlaw เป็น domain specialist tool ตรงวิชาชีพกฎหมาย case-based embed แน่น",
+    gap: "Tool หลักยังเป็น general LLM (Copilot/ChatGPT/Claude) — ยังต้องการ legal-specific AI เพิ่มเติม specialist เพียง 27%",
+    flag: null as null | "passive" | "inconsistent" | "no-l2",
+  },
   { prog: "การบัญชี",              shortProg: "บัญชี",         entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
   { prog: "วิศวกรรมมัลติมีเดียฯ",  shortProg: "Multimedia",    entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
   { prog: "วิศวกรรมไฟฟ้า",         shortProg: "ไฟฟ้า",         entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
@@ -355,6 +371,15 @@ export const curriculumCharacter = [
     tags: ["AI Assurance", "Big 4 Standards", "Audit Automation", "Professional Ethics"],
     color: "#137a4a",
   },
+  {
+    faculty: "คณะนิติศาสตร์",
+    programs: 1,
+    character: "Legal Tech + Critical Oversight",
+    description:
+      "หลักสูตรใหม่ที่มี L2 แข็งแกร่งที่สุดในกลุ่ม Social Science — Generated 60% และ Consulted 80% สูงที่สุด เน้น AI สำหรับ legal research, contract drafting, case analysis และ digital evidence มี Westlaw เป็น specialist tool ระดับวิชาชีพ ฝึก critical oversight ของ AI output อย่างเข้มข้น",
+    tags: ["Legal Tech", "Westlaw", "Contract Drafting", "Digital Evidence", "Critical Oversight"],
+    color: "#1a4f8a",
+  },
 ];
 
 // ─── Tools Gap ────────────────────────────────────────────────────────────────
@@ -367,6 +392,7 @@ export const toolsGap = {
     { name: "Python (Google Colab)", note: "เศรษฐศาสตร์" },
     { name: "Power BI / Canva AI", note: "การวางแผนการเงินและการลงทุน" },
     { name: "Claude / ChatGPT / Gemini", note: "เศรษฐศาสตร์ (ระบุในรายละเอียด)" },
+    { name: "Westlaw", note: "นิติศาสตร์ — legal research database" },
   ],
   wantedByFaculty: [
     { name: "Institutional AI License (Claude/ChatGPT Pro)", note: "หลายคณะขอตรงๆ", urgent: true },
