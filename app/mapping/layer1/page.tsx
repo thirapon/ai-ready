@@ -6,6 +6,7 @@ import { SESSION_KEY } from "@/lib/faculties";
 import { UNESCO_DIMENSIONS, newRow, getDimension, getCompetency } from "@/lib/unesco";
 import type { MappingRow } from "@/lib/unesco";
 import ToolChipInput from "@/components/form/ToolChipInput";
+import { useLang, type T } from "@/lib/i18n";
 
 interface Submission {
   submissionStatus: string;
@@ -22,6 +23,8 @@ const TYPE_CFG = {
   specialist:  { label: "Specialist",  color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
   competitive: { label: "Competitive", color: "#6d28d9", bg: "#f5f3ff", border: "#ddd6fe" },
 };
+
+type SaveMsgKey = "autoSaved" | "savingMsg" | "savedMsg";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const SaveIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>;
@@ -107,9 +110,23 @@ function IntegrationToggle({ label, desc, on, onClick }: { label: string; desc: 
   );
 }
 
+// ─── Language toggle ──────────────────────────────────────────────────────────
+function LangToggle({ lang, setLang }: { lang: "th" | "en"; setLang: (l: "th" | "en") => void }) {
+  return (
+    <div style={{ display: "flex", border: "1px solid #dde3eb", borderRadius: 99, overflow: "hidden", flexShrink: 0 }}>
+      {(["th", "en"] as const).map((l) => (
+        <button key={l} onClick={() => setLang(l)}
+          style={{ padding: "4px 11px", background: lang === l ? "#1a4f8a" : "white", color: lang === l ? "white" : "#677889", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+          {l === "th" ? "ไทย" : "EN"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 function RowPanel({
-  open, row, isNew, onClose, onSave, toolSuggestions = [],
+  open, row, isNew, onClose, onSave, toolSuggestions = [], t,
 }: {
   open: boolean;
   row: MappingRow;
@@ -117,6 +134,7 @@ function RowPanel({
   onClose: () => void;
   onSave: (r: MappingRow) => void;
   toolSuggestions?: string[];
+  t: T;
 }) {
   const [draft, setDraft] = useState<MappingRow>(row);
   useEffect(() => { setDraft(row); }, [row]);
@@ -148,10 +166,10 @@ function RowPanel({
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: "#14202e" }}>
-              {isNew ? "เพิ่มรายวิชาใหม่" : "แก้ไขรายวิชา"}
+              {isNew ? t.panelAddTitle : t.panelEditTitle}
             </div>
             {!isNew && draft.courseCode && (
-              <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{draft.courseCode} · {draft.courseName || "ยังไม่ระบุชื่อ"}</div>
+              <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{draft.courseCode} · {draft.courseName || t.noNameYet}</div>
             )}
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: "#f6f8fb", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }}>
@@ -170,25 +188,25 @@ function RowPanel({
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <FieldLabel>รหัสวิชา</FieldLabel>
-                <FieldInput value={draft.courseCode} onChange={(v) => set({ courseCode: v })} placeholder="เช่น IT101" />
+                <FieldLabel>{t.courseCode}</FieldLabel>
+                <FieldInput value={draft.courseCode} onChange={(v) => set({ courseCode: v })} placeholder={t.courseCodePh} />
               </div>
               <div>
-                <FieldLabel>ปีที่เรียน</FieldLabel>
+                <FieldLabel>{t.studyYear}</FieldLabel>
                 <FieldSelect value={draft.year} onChange={(v) => set({ year: v })}>
-                  <option value="">เลือกปี</option>
-                  {[1,2,3,4].map((y) => <option key={y} value={y}>ปีที่ {y}</option>)}
+                  <option value="">{t.selectYear}</option>
+                  {[1,2,3,4].map((y) => <option key={y} value={y}>{t.yearN(y)}</option>)}
                 </FieldSelect>
               </div>
             </div>
             <div style={{ marginTop: 12 }}>
-              <FieldLabel>ชื่อรายวิชา</FieldLabel>
-              <FieldInput value={draft.courseName} onChange={(v) => set({ courseName: v })} placeholder="ชื่อวิชาภาษาไทยหรืออังกฤษ" />
+              <FieldLabel>{t.courseName}</FieldLabel>
+              <FieldInput value={draft.courseName} onChange={(v) => set({ courseName: v })} placeholder={t.courseNamePh} />
             </div>
             <div style={{ marginTop: 12 }}>
               <FieldLabel>UNESCO Dimension</FieldLabel>
               <FieldSelect value={draft.dimension} onChange={(v) => set({ dimension: v, competency: "" })}>
-                <option value="">เลือก Dimension</option>
+                <option value="">{t.selectDimension}</option>
                 {UNESCO_DIMENSIONS.map((d) => (
                   <option key={d.id} value={d.id}>{d.label}</option>
                 ))}
@@ -198,7 +216,7 @@ function RowPanel({
               <div style={{ marginTop: 12 }}>
                 <FieldLabel>Competency <span style={{ fontWeight: 400, color: "#677889" }}>(cascading)</span></FieldLabel>
                 <FieldSelect value={draft.competency} onChange={(v) => set({ competency: v })}>
-                  <option value="">เลือก Competency</option>
+                  <option value="">{t.selectCompetency}</option>
                   {compOptions.map((c) => (
                     <option key={c.id} value={c.id}>{c.labelTH}</option>
                   ))}
@@ -224,8 +242,8 @@ function RowPanel({
               </div>
             )}
             <div style={{ marginTop: 12 }}>
-              <FieldLabel>วิธีการ embed AI ในรายวิชา</FieldLabel>
-              <FieldInput value={draft.embedMethod} onChange={(v) => set({ embedMethod: v })} placeholder="เช่น บูรณาการในเนื้อหาหลัก, โปรเจกต์ปลายภาค" />
+              <FieldLabel>{t.embedMethod}</FieldLabel>
+              <FieldInput value={draft.embedMethod} onChange={(v) => set({ embedMethod: v })} placeholder={t.embedMethodPh} />
             </div>
           </div>
 
@@ -235,20 +253,20 @@ function RowPanel({
               <div style={{ width: 4, height: 16, borderRadius: 99, background: "#a86a14" }} />
               <span style={{ fontSize: 12, fontWeight: 800, color: "#a86a14", letterSpacing: "0.06em" }}>AI TOOL / PLATFORM</span>
             </div>
-            <FieldLabel>ชื่อ AI Tool หรือ Platform</FieldLabel>
+            <FieldLabel>{t.aiToolLabel}</FieldLabel>
             <ToolChipInput value={draft.aiTool} onChange={(v) => set({ aiTool: v })} suggestions={toolSuggestions} />
             <div style={{ marginTop: 5, fontSize: 12, color: "#8b99a8", display: "flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              พิมพ์ชื่อ tool แล้วกด Enter เพื่อเพิ่มทีละตัว (เลือกจากรายการแนะนำได้)
+              {t.aiToolHint}
             </div>
             <div style={{ marginTop: 12 }}>
-              <FieldLabel>ประเภท</FieldLabel>
+              <FieldLabel>{t.toolType}</FieldLabel>
               <div style={{ display: "flex", gap: 8 }}>
-                {(["essential","specialist","competitive"] as const).map((t) => {
-                  const cfg = TYPE_CFG[t];
-                  const on = draft.toolType === t;
+                {(["essential","specialist","competitive"] as const).map((tp) => {
+                  const cfg = TYPE_CFG[tp];
+                  const on = draft.toolType === tp;
                   return (
-                    <button key={t} type="button" onClick={() => set({ toolType: on ? "" : t })}
+                    <button key={tp} type="button" onClick={() => set({ toolType: on ? "" : tp })}
                       style={{ flex: 1, padding: "8px 6px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12,
                         border: `2px solid ${on ? cfg.color : "#dde3eb"}`,
                         background: on ? cfg.bg : "white", color: on ? cfg.color : "#677889",
@@ -260,8 +278,8 @@ function RowPanel({
               </div>
             </div>
             <div style={{ marginTop: 12 }}>
-              <FieldLabel>วิธีการใช้ AI Tool ในรายวิชา</FieldLabel>
-              <FieldTextarea value={draft.aiUsage} onChange={(v) => set({ aiUsage: v })} placeholder="อธิบายว่านักศึกษาใช้ AI tool นี้อย่างไรในรายวิชา..." rows={3} />
+              <FieldLabel>{t.aiUsage}</FieldLabel>
+              <FieldTextarea value={draft.aiUsage} onChange={(v) => set({ aiUsage: v })} placeholder={t.aiUsagePh} rows={3} />
             </div>
           </div>
 
@@ -272,10 +290,10 @@ function RowPanel({
               <span style={{ fontSize: 12, fontWeight: 800, color: "#137a4a", letterSpacing: "0.06em" }}>AI INTEGRATION LEVEL</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <IntegrationToggle label="AI Free Zone" desc="ไม่ใช้ AI ในทุกขั้นตอน — เป็นผลงานของนักศึกษาทั้งหมด" on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
-              <IntegrationToggle label="AI Consulted"  desc="ใช้ AI เพื่อช่วยคิดเท่านั้น (ไอเดีย คำอธิบาย คำแนะนำ) แต่นักศึกษาผลิตผลงานทั้งหมดเอง"  on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
-              <IntegrationToggle label="AI Assisted"   desc="AI และนักศึกษาร่วมกันผลิต โดยนักศึกษากำกับ แก้ไข และเป็นเจ้าของผลงานสุดท้าย"  on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
-              <IntegrationToggle label="AI Generated"  desc="AI ผลิตผลงานเกือบทั้งหมดหรือทั้งหมด นักศึกษาเป็นผู้กำกับและตรวจทาน"  on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
+              <IntegrationToggle label="AI Free Zone" desc={t.freeZoneDesc}  on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
+              <IntegrationToggle label="AI Consulted" desc={t.consultedDesc} on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
+              <IntegrationToggle label="AI Assisted"  desc={t.assistedDesc}  on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
+              <IntegrationToggle label="AI Generated" desc={t.generatedDesc} on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
             </div>
           </div>
 
@@ -285,15 +303,15 @@ function RowPanel({
               <div style={{ width: 4, height: 16, borderRadius: 99, background: "#677889" }} />
               <span style={{ fontSize: 12, fontWeight: 800, color: "#677889", letterSpacing: "0.06em" }}>NOTES</span>
             </div>
-            <FieldTextarea value={draft.notes} onChange={(v) => set({ notes: v })} placeholder="หมายเหตุหรือเงื่อนไขการใช้ AI ในรายวิชานี้..." rows={3} />
+            <FieldTextarea value={draft.notes} onChange={(v) => set({ notes: v })} placeholder={t.notesPh} rows={3} />
           </div>
         </div>
 
         {/* Panel footer */}
         <div style={{ padding: "14px 20px", borderTop: "1px solid #eef1f6", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} className="btn" style={{ flex: 1 }}>ยกเลิก</button>
+          <button onClick={onClose} className="btn" style={{ flex: 1 }}>{t.cancel}</button>
           <button onClick={() => onSave(draft)} className="btn btn--primary" style={{ flex: 2 }}>
-            <SaveIcon /> บันทึกรายวิชา
+            <SaveIcon /> {t.saveCourse}
           </button>
         </div>
       </div>
@@ -306,6 +324,7 @@ function Layer1MappingInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const submissionId = searchParams.get("id");
+  const { lang, setLang, t } = useLang();
 
   const [session, setSession]   = useState<Session | null>(null);
   const [sub, setSub]           = useState<Submission | null>(null);
@@ -313,7 +332,7 @@ function Layer1MappingInner() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
-  const [saveMsg, setSaveMsg]   = useState("บันทึกอัตโนมัติแล้ว");
+  const [saveMsgKey, setSaveMsgKey] = useState<SaveMsgKey>("autoSaved");
   const [dataLoaded, setDataLoaded] = useState(false);
 
   // Panel state
@@ -348,21 +367,21 @@ function Layer1MappingInner() {
         })
         .catch((code) => {
           if (code === 404) router.replace("/submit");
-          else setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่");
+          else setError(t.errorLoad);
           setLoading(false);
         })
         .finally(() => setLoading(false));
     } catch { router.replace("/login"); }
-  }, [router, submissionId, draftKey]);
+  }, [router, submissionId, draftKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isReadOnly = session?.role === "approver";
 
   useEffect(() => {
     if (!session || !dataLoaded || isReadOnly) return;
-    setSaveMsg("กำลังบันทึก...");
+    setSaveMsgKey("savingMsg");
     localStorage.setItem(draftKey, JSON.stringify(rows));
-    const t = setTimeout(() => setSaveMsg("บันทึกอัตโนมัติแล้ว"), 600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSaveMsgKey("autoSaved"), 600);
+    return () => clearTimeout(timer);
   }, [rows, session, draftKey, dataLoaded, isReadOnly]);
 
   const openNew = () => {
@@ -398,9 +417,9 @@ function Layer1MappingInner() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: submissionId, mapping: rows, action: "draft" }),
       });
-      if (res.ok) setSaveMsg("บันทึกแล้ว ✓");
-      else alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
-    } catch { alert("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่"); }
+      if (res.ok) setSaveMsgKey("savedMsg");
+      else alert(t.errorGeneral);
+    } catch { alert(t.errorConnect); }
     finally { setSaving(false); }
   };
 
@@ -411,14 +430,14 @@ function Layer1MappingInner() {
 
   if (loading || !session) return (
     <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}>
-      <div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div>
+      <div style={{ color: "#677889", fontSize: 14 }}>{t.loading}</div>
     </div>
   );
   if (error) return (
     <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ color: "#b53030", fontSize: 14, marginBottom: 12 }}>{error}</div>
-        <button className="btn btn--primary" onClick={() => router.push("/submit")}>กลับหน้าหลัก</button>
+        <button className="btn btn--primary" onClick={() => router.push("/submit")}>{t.backHome}</button>
       </div>
     </div>
   );
@@ -435,21 +454,22 @@ function Layer1MappingInner() {
       <header className="app-topbar">
         <div className="app-topbar__logo">BU</div>
         <div>
-          <div className="app-topbar__title">ระบบบริหารหลักสูตร AI-Ready</div>
-          <div className="app-topbar__sub">มหาวิทยาลัยกรุงเทพ · Office of Academic Affairs</div>
+          <div className="app-topbar__title">{t.sysTitle}</div>
+          <div className="app-topbar__sub">{t.sysSub}</div>
         </div>
         <div style={{ flex: 1 }} />
-        <span className="savetag"><span className="dot" />{saveMsg}</span>
+        <span className="savetag"><span className="dot" />{t[saveMsgKey]}</span>
+        <LangToggle lang={lang} setLang={setLang} />
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
             <div style={{ fontWeight: 600, color: "#14202e", fontSize: 14 }}>{session.name}</div>
-            <div style={{ fontSize: 11.5, color: "#677889" }}>ผู้ยื่นคำขอ</div>
+            <div style={{ fontSize: 11.5, color: "#677889" }}>{t.roleFaculty}</div>
           </div>
           <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#dbe7f4", color: "#1a4f8a", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12 }}>
             {session.name.replace(/^คณะ/, "").slice(0, 2)}
           </div>
-          <button className="logout-btn" onClick={handleLogout} title="ออกจากระบบ">
+          <button className="logout-btn" onClick={handleLogout} title={t.logout}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
@@ -461,10 +481,10 @@ function Layer1MappingInner() {
         {isReadOnly && (
           <div style={{ background: "#eef4fb", border: "1px solid #dbe7f4", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a4f8a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span style={{ color: "#1a4f8a", fontWeight: 600 }}>โหมดดูข้อมูล (Approver)</span>
-            <span style={{ color: "#677889" }}>— ไม่สามารถแก้ไขข้อมูลได้</span>
+            <span style={{ color: "#1a4f8a", fontWeight: 600 }}>{t.readOnlyMode}</span>
+            <span style={{ color: "#677889" }}>{t.readOnlyDesc}</span>
             <button onClick={() => router.push("/approver/mapping")} style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#1a4f8a", background: "none", border: "1px solid #dbe7f4", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
-              ← กลับ Mapping Dashboard
+              {t.backMappingDashboard}
             </button>
           </div>
         )}
@@ -473,7 +493,7 @@ function Layer1MappingInner() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
             <a href={isReadOnly ? "/approver/mapping" : "/submit"} style={{ color: "#1a4f8a", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600 }}>
-              <BackIcon /> {isReadOnly ? "Mapping Dashboard" : "หน้าหลัก"}
+              <BackIcon /> {isReadOnly ? "Mapping Dashboard" : t.home}
             </a>
             <span style={{ color: "#b9c3cf" }}>›</span>
             <span style={{ color: "#677889" }}>{program}</span>
@@ -485,7 +505,7 @@ function Layer1MappingInner() {
             <a href={`/mapping/layer2?id=${submissionId}`} style={{ padding: "6px 14px", borderRadius: 7, color: "#677889", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>L2 · School & Industry</a>
             <a href={`/mapping/viz?id=${submissionId}`} style={{ padding: "6px 12px", borderRadius: 7, color: "#137a4a", fontSize: 12.5, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, background: "#e6f4ec", border: "1px solid #b5dbc5" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              แผนที่หลักสูตร
+              {t.curriculumMap}
             </a>
           </div>
         </div>
@@ -497,12 +517,12 @@ function Layer1MappingInner() {
             <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", fontSize: 11, fontWeight: 700, marginBottom: 10, letterSpacing: "0.05em" }}>
               UNESCO AI COMPETENCY FRAMEWORK 2023
             </span>
-            <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>การแมพหลักสูตรสู่มาตรฐาน UNESCO</h1>
+            <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>{t.l1HeroTitle}</h1>
             <p style={{ margin: "0 0 16px", fontSize: 13, opacity: 0.8, lineHeight: 1.55 }}>
-              ระบุว่าแต่ละรายวิชาสอดคล้องกับมิติ UNESCO AI Framework ใด และใช้ AI Tool ในระดับใด
+              {t.l1HeroDesc}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-              {[{ label: "หลักสูตร", value: program }, { label: "คณะ", value: sub?.facultyName ?? "—" }, { label: "เลขอ้างอิง", value: sub?.refId ?? "—" }].map((m) => (
+              {[{ label: t.curriculum, value: program }, { label: t.faculty, value: sub?.facultyName ?? "—" }, { label: t.refNo, value: sub?.refId ?? "—" }].map((m) => (
                 <div key={m.label}>
                   <div style={{ fontSize: 11, opacity: 0.65, marginBottom: 2 }}>{m.label}</div>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{m.value}</div>
@@ -512,17 +532,17 @@ function Layer1MappingInner() {
           </div>
           <div style={{ marginTop: 16, background: "rgba(201,164,76,0.18)", border: "1px solid rgba(201,164,76,0.4)", borderRadius: 8, padding: "9px 14px", fontSize: 12.5, color: "#f5dea3", display: "flex", gap: 8, position: "relative" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>กดปุ่ม <b>&quot;+ เพิ่มรายวิชา&quot;</b> เพื่อเพิ่มแต่ละรายวิชา — ระบบจะเปิด panel ทางขวาสำหรับกรอกข้อมูล</span>
+            <span>{t.l1HeroHintPre} <b>&quot;{t.l1HeroHintBold}&quot;</b> {t.l1HeroHintPost}</span>
           </div>
         </div>
 
         {/* Stats strip */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
           {[
-            { label: "รายวิชาทั้งหมด", value: rows.length,  color: "#1a4f8a" },
-            { label: "ระดับ Apply",    value: applyCount,   color: "#137a4a" },
-            { label: "ระดับ Create",   value: createCount,  color: "#6d28d9" },
-            { label: "รหัสวิชาไม่ซ้ำ", value: courseCount,  color: "#a86a14" },
+            { label: t.totalCourses, value: rows.length,  color: "#1a4f8a" },
+            { label: t.applyLevel,   value: applyCount,   color: "#137a4a" },
+            { label: t.createLevel,  value: createCount,  color: "#6d28d9" },
+            { label: t.uniqueCodes,  value: courseCount,  color: "#a86a14" },
           ].map((s) => (
             <div key={s.label} style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 10, padding: "14px 18px" }}>
               <div style={{ fontSize: 12, color: "#677889", marginBottom: 6 }}>{s.label}</div>
@@ -535,11 +555,11 @@ function Layer1MappingInner() {
         <div style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>รายการแมพ</h3>
-              <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} รายวิชา</span>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>{t.mappingList}</h3>
+              <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} {t.courses}</span>
             </div>
             <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-              <PlusIcon /> เพิ่มรายวิชา
+              <PlusIcon /> {t.addCourse}
             </button>
           </div>
 
@@ -548,10 +568,10 @@ function Layer1MappingInner() {
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#eef4fb", color: "#1a4f8a", display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 6 }}>ยังไม่มีรายวิชา</div>
-              <div style={{ fontSize: 13, color: "#677889", marginBottom: 16 }}>กดปุ่มด้านบนเพื่อเพิ่มรายวิชาแรก</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 6 }}>{t.emptyTitle}</div>
+              <div style={{ fontSize: 13, color: "#677889", marginBottom: 16 }}>{t.emptyDesc}</div>
               <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", gap: 6 }}>
-                <PlusIcon /> เพิ่มรายวิชาแรก
+                <PlusIcon /> {t.addFirstCourse}
               </button>
             </div>
           ) : (
@@ -559,7 +579,7 @@ function Layer1MappingInner() {
               <thead>
                 <tr style={{ background: "#f6f8fb" }}>
                   <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6", width: 40 }}>#</th>
-                  <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6" }}>รายวิชา</th>
+                  <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6" }}>{t.colCourse}</th>
                   <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6" }}>UNESCO Dimension</th>
                   <th style={{ padding: "10px 12px", textAlign: "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6" }}>AI Tool</th>
                   <th style={{ padding: "10px 12px", textAlign: "center", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6", width: 140 }}>Integration Level</th>
@@ -593,8 +613,8 @@ function Layer1MappingInner() {
                         </div>
                       </td>
                       <td style={{ padding: "12px 12px" }}>
-                        <div style={{ fontWeight: 600, color: "#14202e" }}>{row.courseName || <span style={{ color: "#b9c3cf" }}>ยังไม่ระบุ</span>}</div>
-                        {row.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{row.courseCode} {row.year ? `· ปีที่ ${row.year}` : ""}</div>}
+                        <div style={{ fontWeight: 600, color: "#14202e" }}>{row.courseName || <span style={{ color: "#b9c3cf" }}>{t.notSpecified}</span>}</div>
+                        {row.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{row.courseCode} {row.year ? `· ${t.yearN(Number(row.year))}` : ""}</div>}
                       </td>
                       <td style={{ padding: "12px 12px" }}>
                         {dim ? (
@@ -636,10 +656,10 @@ function Layer1MappingInner() {
                       <td style={{ padding: "12px 12px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                           {!isReadOnly && (<>
-                            <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="แก้ไข">
+                            <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="Edit">
                               <EditIcon />
                             </button>
-                            <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="ลบ">
+                            <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="Delete">
                               <TrashIcon />
                             </button>
                           </>)}
@@ -652,16 +672,16 @@ function Layer1MappingInner() {
                           <div style={{ background: "#f6f8fb", borderTop: "1px solid #eef1f6", padding: "14px 16px 16px 48px" }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการ embed AI ในรายวิชา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colEmbedMethod}</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.embedMethod || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการใช้ AI Tool ในรายวิชา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colAiUsage}</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.aiUsage || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               {row.notes && (
                                 <div style={{ gridColumn: "1 / -1" }}>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>หมายเหตุ</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colNotes}</div>
                                   <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.notes}</div>
                                 </div>
                               )}
@@ -691,11 +711,11 @@ function Layer1MappingInner() {
       {/* ── Sticky footer ── */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #dde3eb", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 40 }}>
         <div style={{ fontSize: 13, color: "#677889" }}>
-          <b style={{ color: "#14202e" }}>{rows.length}</b> รายวิชา · <b style={{ color: "#137a4a" }}>{applyCount}</b> Apply · <b style={{ color: "#6d28d9" }}>{createCount}</b> Create
+          <b style={{ color: "#14202e" }}>{rows.length}</b> {t.courses} · <b style={{ color: "#137a4a" }}>{applyCount}</b> Apply · <b style={{ color: "#6d28d9" }}>{createCount}</b> Create
         </div>
         {!isReadOnly && (
           <button className="btn btn--primary" onClick={saveMapping} disabled={saving}>
-            {saving ? <SpinIcon /> : <SaveIcon />} บันทึกการแมพ
+            {saving ? <SpinIcon /> : <SaveIcon />} {t.saveMapping}
           </button>
         )}
       </div>
@@ -707,7 +727,8 @@ function Layer1MappingInner() {
         isNew={editIdx === null}
         onClose={closePanel}
         onSave={savePanel}
-        toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((t) => t.trim()).filter(Boolean))))}
+        toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((tp) => tp.trim()).filter(Boolean))))}
+        t={t}
       />
     </div>
   );
@@ -717,7 +738,7 @@ export default function Layer1MappingPage() {
   return (
     <Suspense fallback={
       <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}>
-        <div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div>
+        <div style={{ color: "#677889", fontSize: 14 }}>Loading…</div>
       </div>
     }>
       <Layer1MappingInner />

@@ -6,6 +6,7 @@ import { SESSION_KEY } from "@/lib/faculties";
 import { newLayer2Row } from "@/lib/unesco";
 import type { Layer2Row } from "@/lib/unesco";
 import ToolChipInput from "@/components/form/ToolChipInput";
+import { useLang, type T } from "@/lib/i18n";
 
 interface FormCompetency {
   id: number;
@@ -35,11 +36,9 @@ const SECTOR_CFG = {
   industry: { label: "Industry", color: "#b6620e", bg: "#fff3e6", border: "#f0d0a0" },
 };
 
-// Layer 2 competency is free text; we link it to a Step-2 competency by name
-// (no DB foreign key). normalizeComp lets us compare leniently — ignoring case,
-// surrounding/extra whitespace — so "Prompt  Engineering " matches "prompt engineering".
+type SaveMsgKey = "autoSaved" | "savingMsg" | "savedMsg";
+
 const normalizeComp = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-// A competency is an "orphan" when text is filled but matches no Step-2 name.
 function isOrphanComp(text: string, compNames: Set<string>): boolean {
   const t = normalizeComp(text);
   return t !== "" && !compNames.has(t);
@@ -101,12 +100,27 @@ function IntegrationToggle({ label, desc, on, onClick }: { label: string; desc: 
   );
 }
 
+// ─── Language toggle ──────────────────────────────────────────────────────────
+function LangToggle({ lang, setLang }: { lang: "th" | "en"; setLang: (l: "th" | "en") => void }) {
+  return (
+    <div style={{ display: "flex", border: "1px solid #dde3eb", borderRadius: 99, overflow: "hidden", flexShrink: 0 }}>
+      {(["th", "en"] as const).map((l) => (
+        <button key={l} onClick={() => setLang(l)}
+          style={{ padding: "4px 11px", background: lang === l ? "#1a4f8a" : "white", color: lang === l ? "white" : "#677889", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+          {l === "th" ? "ไทย" : "EN"}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
-function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [], toolSuggestions = [] }: {
+function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [], toolSuggestions = [], t }: {
   open: boolean; row: Layer2Row; isNew: boolean;
   onClose: () => void; onSave: (r: Layer2Row) => void;
   suggestedCompetencies?: FormCompetency[];
   toolSuggestions?: string[];
+  t: T;
 }) {
   const [draft, setDraft] = useState<Layer2Row>(row);
   useEffect(() => { setDraft(row); }, [row]);
@@ -120,8 +134,8 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
         {/* Header */}
         <div style={{ padding: "18px 20px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#14202e" }}>{isNew ? "เพิ่มรายวิชาใหม่" : "แก้ไขรายวิชา"}</div>
-            {!isNew && draft.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{draft.courseCode} · {draft.courseName || "ยังไม่ระบุชื่อ"}</div>}
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#14202e" }}>{isNew ? t.panelAddTitle : t.panelEditTitle}</div>
+            {!isNew && draft.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{draft.courseCode} · {draft.courseName || t.noNameYet}</div>}
           </div>
           <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: "50%", border: "none", background: "#f6f8fb", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }}><XIcon /></button>
         </div>
@@ -162,7 +176,7 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
                 <div style={{ marginBottom: 8 }}>
                   <div style={{ fontSize: 11.5, color: "#677889", marginBottom: 6, display: "flex", alignItems: "center", gap: 5 }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                    เลือกจากสมรรถนะในแบบฟอร์ม:
+                    {t.suggestFromForm}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {filtered.map((c) => {
@@ -186,12 +200,12 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
               return (
                 <>
                   <div style={{ marginBottom: orphan ? 6 : 12 }}>
-                    <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder="เลือกจากชิพด้านบน หรือพิมพ์สมรรถนะเอง..." rows={2} />
+                    <FieldTextarea value={draft.competency} onChange={(v) => set({ competency: v })} placeholder={t.competencyPh} rows={2} />
                   </div>
                   {orphan && (
                     <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 7, padding: "8px 11px", borderRadius: 8, background: "#fcf3e1", border: "1px solid #f0dca6", fontSize: 12, color: "#a86a14", lineHeight: 1.5 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      <span>สมรรถนะนี้ไม่ตรงกับที่ระบุไว้ใน Step 2 — ตรวจสอบว่าตั้งใจเพิ่มเอง หรือสะกดไม่ตรง</span>
+                      <span>{t.orphanWarning}</span>
                     </div>
                   )}
                 </>
@@ -200,25 +214,25 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
               <div>
-                <FieldLabel>รหัสวิชา</FieldLabel>
-                <FieldInput value={draft.courseCode} onChange={(v) => set({ courseCode: v })} placeholder="เช่น IT101" />
+                <FieldLabel>{t.courseCode}</FieldLabel>
+                <FieldInput value={draft.courseCode} onChange={(v) => set({ courseCode: v })} placeholder={t.courseCodePh} />
               </div>
               <div>
-                <FieldLabel>ปีที่เรียน</FieldLabel>
+                <FieldLabel>{t.studyYear}</FieldLabel>
                 <FieldSelect value={draft.year} onChange={(v) => set({ year: v })}>
-                  <option value="">เลือกปี</option>
-                  {[1,2,3,4].map((y) => <option key={y} value={y}>ปีที่ {y}</option>)}
+                  <option value="">{t.selectYear}</option>
+                  {[1,2,3,4].map((y) => <option key={y} value={y}>{t.yearN(y)}</option>)}
                 </FieldSelect>
               </div>
             </div>
 
-            <FieldLabel>ชื่อรายวิชา</FieldLabel>
+            <FieldLabel>{t.courseName}</FieldLabel>
             <div style={{ marginBottom: 12 }}>
-              <FieldInput value={draft.courseName} onChange={(v) => set({ courseName: v })} placeholder="ชื่อวิชาภาษาไทยหรืออังกฤษ" />
+              <FieldInput value={draft.courseName} onChange={(v) => set({ courseName: v })} placeholder={t.courseNamePh} />
             </div>
 
-            <FieldLabel>วิธีการ embed AI ในรายวิชา</FieldLabel>
-            <FieldInput value={draft.embedMethod} onChange={(v) => set({ embedMethod: v })} placeholder="เช่น บูรณาการในเนื้อหาหลัก, โปรเจกต์ปลายภาค" />
+            <FieldLabel>{t.embedMethod}</FieldLabel>
+            <FieldInput value={draft.embedMethod} onChange={(v) => set({ embedMethod: v })} placeholder={t.embedMethodPh} />
           </div>
 
           {/* AI TOOL */}
@@ -227,29 +241,29 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
               <div style={{ width: 4, height: 16, borderRadius: 99, background: "#a86a14" }} />
               <span style={{ fontSize: 12, fontWeight: 800, color: "#a86a14", letterSpacing: "0.06em" }}>AI TOOL / PLATFORM</span>
             </div>
-            <FieldLabel>ชื่อ AI Tool หรือ Platform</FieldLabel>
+            <FieldLabel>{t.aiToolLabel}</FieldLabel>
             <div style={{ marginBottom: 4 }}>
               <ToolChipInput value={draft.aiTool} onChange={(v) => set({ aiTool: v })} suggestions={toolSuggestions} />
             </div>
             <div style={{ marginBottom: 12, fontSize: 12, color: "#8b99a8", display: "flex", alignItems: "center", gap: 5 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              พิมพ์ชื่อ tool แล้วกด Enter เพื่อเพิ่มทีละตัว (เลือกจากรายการแนะนำได้)
+              {t.aiToolHint}
             </div>
-            <FieldLabel>ประเภท</FieldLabel>
+            <FieldLabel>{t.toolType}</FieldLabel>
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              {(["essential","specialist","competitive"] as const).map((t) => {
-                const cfg = TYPE_CFG[t];
-                const on = draft.toolType === t;
+              {(["essential","specialist","competitive"] as const).map((tp) => {
+                const cfg = TYPE_CFG[tp];
+                const on = draft.toolType === tp;
                 return (
-                  <button key={t} type="button" onClick={() => set({ toolType: on ? "" : t })}
+                  <button key={tp} type="button" onClick={() => set({ toolType: on ? "" : tp })}
                     style={{ flex: 1, padding: "8px 6px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12, border: `2px solid ${on ? cfg.color : "#dde3eb"}`, background: on ? cfg.bg : "white", color: on ? cfg.color : "#677889", transition: "all 0.15s" }}>
                     {cfg.label}
                   </button>
                 );
               })}
             </div>
-            <FieldLabel>วิธีการใช้ AI Tool ในรายวิชา</FieldLabel>
-            <FieldTextarea value={draft.aiUsage} onChange={(v) => set({ aiUsage: v })} placeholder="อธิบายว่านักศึกษาใช้ AI tool นี้อย่างไร..." rows={3} />
+            <FieldLabel>{t.aiUsage}</FieldLabel>
+            <FieldTextarea value={draft.aiUsage} onChange={(v) => set({ aiUsage: v })} placeholder={t.aiUsagePh2} rows={3} />
           </div>
 
           {/* AI INTEGRATION LEVEL */}
@@ -259,10 +273,10 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
               <span style={{ fontSize: 12, fontWeight: 800, color: "#137a4a", letterSpacing: "0.06em" }}>AI INTEGRATION LEVEL</span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <IntegrationToggle label="AI Free Zone"  desc="ไม่ใช้ AI ในทุกขั้นตอน — เป็นผลงานของนักศึกษาทั้งหมด"      on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
-              <IntegrationToggle label="AI Consulted"  desc="ใช้ AI เพื่อช่วยคิดเท่านั้น (ไอเดีย คำอธิบาย คำแนะนำ) แต่นักศึกษาผลิตผลงานทั้งหมดเอง"  on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
-              <IntegrationToggle label="AI Assisted"   desc="AI และนักศึกษาร่วมกันผลิต โดยนักศึกษากำกับ แก้ไข และเป็นเจ้าของผลงานสุดท้าย"  on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
-              <IntegrationToggle label="AI Generated"  desc="AI ผลิตผลงานเกือบทั้งหมดหรือทั้งหมด นักศึกษาเป็นผู้กำกับและตรวจทาน"  on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
+              <IntegrationToggle label="AI Free Zone"  desc={t.freeZoneDesc}  on={draft.freeZone}  onClick={() => set({ freeZone:  !draft.freeZone  })} />
+              <IntegrationToggle label="AI Consulted"  desc={t.consultedDesc} on={draft.consulted} onClick={() => set({ consulted: !draft.consulted })} />
+              <IntegrationToggle label="AI Assisted"   desc={t.assistedDesc}  on={draft.assisted}  onClick={() => set({ assisted:  !draft.assisted  })} />
+              <IntegrationToggle label="AI Generated"  desc={t.generatedDesc} on={draft.generated} onClick={() => set({ generated: !draft.generated })} />
             </div>
           </div>
 
@@ -272,15 +286,15 @@ function RowPanel({ open, row, isNew, onClose, onSave, suggestedCompetencies = [
               <div style={{ width: 4, height: 16, borderRadius: 99, background: "#677889" }} />
               <span style={{ fontSize: 12, fontWeight: 800, color: "#677889", letterSpacing: "0.06em" }}>NOTES</span>
             </div>
-            <FieldTextarea value={draft.notes} onChange={(v) => set({ notes: v })} placeholder="หมายเหตุหรือเงื่อนไขการใช้ AI ในรายวิชานี้..." rows={3} />
+            <FieldTextarea value={draft.notes} onChange={(v) => set({ notes: v })} placeholder={t.notesPh} rows={3} />
           </div>
         </div>
 
         {/* Footer */}
         <div style={{ padding: "14px 20px", borderTop: "1px solid #eef1f6", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} className="btn" style={{ flex: 1 }}>ยกเลิก</button>
+          <button onClick={onClose} className="btn" style={{ flex: 1 }}>{t.cancel}</button>
           <button onClick={() => onSave(draft)} className="btn btn--primary" style={{ flex: 2 }}>
-            <SaveIcon /> บันทึกรายวิชา
+            <SaveIcon /> {t.saveCourse}
           </button>
         </div>
       </div>
@@ -293,6 +307,7 @@ function Layer2MappingInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const submissionId = searchParams.get("id");
+  const { lang, setLang, t } = useLang();
 
   const [session, setSession]   = useState<Session | null>(null);
   const [sub, setSub]           = useState<Submission | null>(null);
@@ -300,7 +315,7 @@ function Layer2MappingInner() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
-  const [saveMsg, setSaveMsg]   = useState("บันทึกอัตโนมัติแล้ว");
+  const [saveMsgKey, setSaveMsgKey] = useState<SaveMsgKey>("autoSaved");
   const [dataLoaded, setDataLoaded] = useState(false);
   const [panelOpen, setPanelOpen] = useState(false);
   const [editIdx, setEditIdx]   = useState<number | null>(null);
@@ -333,21 +348,21 @@ function Layer2MappingInner() {
         })
         .catch((code) => {
           if (code === 404) router.replace("/submit");
-          else setError("ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่");
+          else setError(t.errorLoad);
           setLoading(false);
         })
         .finally(() => setLoading(false));
     } catch { router.replace("/login"); }
-  }, [router, submissionId, draftKey]);
+  }, [router, submissionId, draftKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isReadOnly = session?.role === "approver";
 
   useEffect(() => {
     if (!session || !dataLoaded || isReadOnly) return;
-    setSaveMsg("กำลังบันทึก...");
+    setSaveMsgKey("savingMsg");
     localStorage.setItem(draftKey, JSON.stringify(rows));
-    const t = setTimeout(() => setSaveMsg("บันทึกอัตโนมัติแล้ว"), 600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSaveMsgKey("autoSaved"), 600);
+    return () => clearTimeout(timer);
   }, [rows, session, draftKey, dataLoaded, isReadOnly]);
 
   const openNew  = () => { if (isReadOnly) return; setPanelRow(newLayer2Row()); setEditIdx(null); setPanelOpen(true); };
@@ -365,22 +380,20 @@ function Layer2MappingInner() {
     setSaving(true);
     try {
       const res = await fetch("/api/mapping/layer2", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: submissionId, mapping: rows, action: "draft" }) });
-      if (res.ok) setSaveMsg("บันทึกแล้ว ✓");
-      else alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
-    } catch { alert("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่"); } finally { setSaving(false); }
+      if (res.ok) setSaveMsgKey("savedMsg");
+      else alert(t.errorGeneral);
+    } catch { alert(t.errorConnect); } finally { setSaving(false); }
   };
 
   const handleLogout = () => { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); router.push("/login"); };
 
-  if (loading || !session) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div></div>;
-  if (error) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ textAlign: "center" }}><div style={{ color: "#b53030", fontSize: 14, marginBottom: 12 }}>{error}</div><button className="btn btn--primary" onClick={() => router.push("/submit")}>กลับหน้าหลัก</button></div></div>;
+  if (loading || !session) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ color: "#677889", fontSize: 14 }}>{t.loading}</div></div>;
+  if (error) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ textAlign: "center" }}><div style={{ color: "#b53030", fontSize: 14, marginBottom: 12 }}>{error}</div><button className="btn btn--primary" onClick={() => router.push("/submit")}>{t.backHome}</button></div></div>;
 
   const program      = sub?.formData?.program ?? sub?.facultyName ?? "—";
   const schoolCount  = rows.filter((r) => r.sector === "school").length;
   const industryCount= rows.filter((r) => r.sector === "industry").length;
   const courseCount  = new Set(rows.map((r) => r.courseCode).filter(Boolean)).size;
-  // Set of Step-2 competency names (normalized) — to flag Layer 2 rows whose
-  // competency no longer matches any declared competency in the form.
   const compNames    = new Set((sub?.formData?.competencies ?? []).map((c) => normalizeComp(c.name)).filter(Boolean));
   const orphanCount  = rows.filter((r) => isOrphanComp(r.competency, compNames)).length;
 
@@ -391,21 +404,22 @@ function Layer2MappingInner() {
       <header className="app-topbar">
         <div className="app-topbar__logo">BU</div>
         <div>
-          <div className="app-topbar__title">ระบบบริหารหลักสูตร AI-Ready</div>
-          <div className="app-topbar__sub">มหาวิทยาลัยกรุงเทพ · Office of Academic Affairs</div>
+          <div className="app-topbar__title">{t.sysTitle}</div>
+          <div className="app-topbar__sub">{t.sysSub}</div>
         </div>
         <div style={{ flex: 1 }} />
-        <span className="savetag"><span className="dot" />{saveMsg}</span>
+        <span className="savetag"><span className="dot" />{t[saveMsgKey]}</span>
+        <LangToggle lang={lang} setLang={setLang} />
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
             <div style={{ fontWeight: 600, color: "#14202e", fontSize: 14 }}>{session.name}</div>
-            <div style={{ fontSize: 11.5, color: "#677889" }}>ผู้ยื่นคำขอ</div>
+            <div style={{ fontSize: 11.5, color: "#677889" }}>{t.roleFaculty}</div>
           </div>
           <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#dbe7f4", color: "#1a4f8a", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12 }}>
             {session.name.replace(/^คณะ/, "").slice(0, 2)}
           </div>
-          <button className="logout-btn" onClick={handleLogout} title="ออกจากระบบ">
+          <button className="logout-btn" onClick={handleLogout} title={t.logout}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
           </button>
         </div>
@@ -417,10 +431,10 @@ function Layer2MappingInner() {
         {isReadOnly && (
           <div style={{ background: "#eef4fb", border: "1px solid #dbe7f4", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a4f8a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <span style={{ color: "#1a4f8a", fontWeight: 600 }}>โหมดดูข้อมูล (Approver)</span>
-            <span style={{ color: "#677889" }}>— ไม่สามารถแก้ไขข้อมูลได้</span>
+            <span style={{ color: "#1a4f8a", fontWeight: 600 }}>{t.readOnlyMode}</span>
+            <span style={{ color: "#677889" }}>{t.readOnlyDesc}</span>
             <button onClick={() => router.push("/approver/mapping")} style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: "#1a4f8a", background: "none", border: "1px solid #dbe7f4", borderRadius: 6, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>
-              ← กลับ Mapping Dashboard
+              {t.backMappingDashboard}
             </button>
           </div>
         )}
@@ -428,7 +442,7 @@ function Layer2MappingInner() {
         {/* Breadcrumb + Layer tabs */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-            <a href={isReadOnly ? "/approver/mapping" : "/submit"} style={{ color: "#1a4f8a", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600 }}><BackIcon /> {isReadOnly ? "Mapping Dashboard" : "หน้าหลัก"}</a>
+            <a href={isReadOnly ? "/approver/mapping" : "/submit"} style={{ color: "#1a4f8a", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, fontWeight: 600 }}><BackIcon /> {isReadOnly ? "Mapping Dashboard" : t.home}</a>
             <span style={{ color: "#b9c3cf" }}>›</span>
             <span style={{ color: "#677889" }}>{program}</span>
             <span style={{ color: "#b9c3cf" }}>›</span>
@@ -439,24 +453,24 @@ function Layer2MappingInner() {
             <span style={{ padding: "6px 14px", borderRadius: 7, background: "#1a4f8a", color: "white", fontSize: 12.5, fontWeight: 700 }}>L2 · School & Industry</span>
             <a href={`/mapping/viz?id=${submissionId}`} style={{ padding: "6px 12px", borderRadius: 7, color: "#137a4a", fontSize: 12.5, fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 5, background: "#e6f4ec", border: "1px solid #b5dbc5" }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              แผนที่หลักสูตร
+              {t.curriculumMap}
             </a>
           </div>
         </div>
 
-{/* MapHeader — purple gradient for L2 */}
+        {/* MapHeader — purple gradient for L2 */}
         <div style={{ background: "linear-gradient(135deg, #4a1d8a 0%, #2d0f5e 100%)", borderRadius: 14, padding: "26px 30px", marginBottom: 18, color: "white", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.06) 0%, transparent 60%)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
             <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 99, background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.25)", fontSize: 11, fontWeight: 700, marginBottom: 10, letterSpacing: "0.05em" }}>
               SCHOOL & INDUSTRY AI COMPETENCY FRAMEWORK
             </span>
-            <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>การแมพสมรรถนะ School & Industry</h1>
+            <h1 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>{t.l2HeroTitle}</h1>
             <p style={{ margin: "0 0 16px", fontSize: 13, opacity: 0.8, lineHeight: 1.55 }}>
-              ระบุสมรรถนะ AI เฉพาะของคณะ (School) หรืออุตสาหกรรม (Industry) ที่แต่ละรายวิชาสอดคล้อง
+              {t.l2HeroDesc}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 20 }}>
-              {[{ label: "หลักสูตร", value: program }, { label: "คณะ", value: sub?.facultyName ?? "—" }, { label: "เลขอ้างอิง", value: sub?.refId ?? "—" }].map((m) => (
+              {[{ label: t.curriculum, value: program }, { label: t.faculty, value: sub?.facultyName ?? "—" }, { label: t.refNo, value: sub?.refId ?? "—" }].map((m) => (
                 <div key={m.label}>
                   <div style={{ fontSize: 11, opacity: 0.65, marginBottom: 2 }}>{m.label}</div>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{m.value}</div>
@@ -466,17 +480,17 @@ function Layer2MappingInner() {
           </div>
           <div style={{ marginTop: 16, background: "rgba(201,164,76,0.18)", border: "1px solid rgba(201,164,76,0.4)", borderRadius: 8, padding: "9px 14px", fontSize: 12.5, color: "#f5dea3", display: "flex", gap: 8, position: "relative" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>เลือก <b>School</b> หรือ <b>Industry</b> — แล้วพิมพ์สมรรถนะได้อย่างอิสระ — 1 แถว = 1 รายวิชา × 1 สมรรถนะ</span>
+            <span>{t.l2HeroHint}</span>
           </div>
         </div>
 
         {/* Stats strip */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
           {[
-            { label: "รายวิชาทั้งหมด", value: rows.length,   color: "#4a1d8a" },
-            { label: "School",         value: schoolCount,   color: "#6a3eb5" },
-            { label: "Industry",       value: industryCount, color: "#b6620e" },
-            { label: "รหัสวิชาไม่ซ้ำ", value: courseCount,   color: "#1a4f8a" },
+            { label: t.totalCourses, value: rows.length,   color: "#4a1d8a" },
+            { label: "School",       value: schoolCount,   color: "#6a3eb5" },
+            { label: "Industry",     value: industryCount, color: "#b6620e" },
+            { label: t.uniqueCodes,  value: courseCount,   color: "#1a4f8a" },
           ].map((s) => (
             <div key={s.label} style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 10, padding: "14px 18px" }}>
               <div style={{ fontSize: 12, color: "#677889", marginBottom: 6 }}>{s.label}</div>
@@ -489,7 +503,7 @@ function Layer2MappingInner() {
         {orphanCount > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", marginBottom: 14, borderRadius: 10, background: "#fcf3e1", border: "1px solid #f0dca6", fontSize: 12.5, color: "#a86a14" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span><b>{orphanCount}</b> รายวิชามีสมรรถนะที่ไม่ตรงกับที่ระบุไว้ใน Step 2 ของแบบฟอร์ม — อาจมาจากการแก้ไข/ลบสมรรถนะในแบบฟอร์มภายหลัง หรือสะกดไม่ตรง</span>
+            <span dangerouslySetInnerHTML={{ __html: t.orphanBanner(orphanCount) }} />
           </div>
         )}
 
@@ -497,11 +511,11 @@ function Layer2MappingInner() {
         <div style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ padding: "14px 18px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>รายการแมพ</h3>
-              <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} รายวิชา</span>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>{t.mappingList}</h3>
+              <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} {t.courses}</span>
             </div>
             <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-              <PlusIcon /> เพิ่มรายวิชา
+              <PlusIcon /> {t.addCourse}
             </button>
           </div>
 
@@ -510,17 +524,17 @@ function Layer2MappingInner() {
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#f3ecfb", color: "#6a3eb5", display: "grid", placeItems: "center", margin: "0 auto 14px" }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 6 }}>ยังไม่มีรายวิชา</div>
-              <div style={{ fontSize: 13, color: "#677889", marginBottom: 16 }}>กดปุ่มด้านบนเพื่อเพิ่มรายวิชาแรก</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#14202e", marginBottom: 6 }}>{t.emptyTitle}</div>
+              <div style={{ fontSize: 13, color: "#677889", marginBottom: 16 }}>{t.emptyDesc}</div>
               <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", gap: 6 }}>
-                <PlusIcon /> เพิ่มรายวิชาแรก
+                <PlusIcon /> {t.addFirstCourse}
               </button>
             </div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#f6f8fb" }}>
-                  {["#", "รายวิชา", "School / Industry + Competency", "AI Tool", "Integration Level", ...(isReadOnly ? [] : ["Actions"])].map((h, i) => (
+                  {["#", t.colCourse, "School / Industry + Competency", "AI Tool", "Integration Level", ...(isReadOnly ? [] : ["Actions"])].map((h, i) => (
                     <th key={h} style={{ padding: "10px 12px", textAlign: i >= 3 ? "center" : "left", fontWeight: 700, color: "#3a4859", fontSize: 12, borderBottom: "1px solid #eef1f6", width: i === 0 ? 40 : i === 4 ? 140 : i === 5 ? 80 : "auto" }}>{h}</th>
                   ))}
                 </tr>
@@ -551,8 +565,8 @@ function Layer2MappingInner() {
                         </div>
                       </td>
                       <td style={{ padding: "12px 12px" }}>
-                        <div style={{ fontWeight: 600, color: "#14202e" }}>{row.courseName || <span style={{ color: "#b9c3cf" }}>ยังไม่ระบุ</span>}</div>
-                        {row.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{row.courseCode}{row.year ? ` · ปีที่ ${row.year}` : ""}</div>}
+                        <div style={{ fontWeight: 600, color: "#14202e" }}>{row.courseName || <span style={{ color: "#b9c3cf" }}>{t.notSpecified}</span>}</div>
+                        {row.courseCode && <div style={{ fontSize: 12, color: "#677889", marginTop: 2 }}>{row.courseCode}{row.year ? ` · ${t.yearN(Number(row.year))}` : ""}</div>}
                       </td>
                       <td style={{ padding: "12px 12px" }}>
                         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -566,9 +580,9 @@ function Layer2MappingInner() {
                             : <span style={{ color: "#b9c3cf", fontSize: 12 }}>—</span>
                           }
                           {isOrphanComp(row.competency, compNames) && (
-                            <span title="สมรรถนะนี้ไม่ตรงกับที่ระบุไว้ใน Step 2 ของแบบฟอร์ม" style={{ display: "inline-flex", alignItems: "center", gap: 4, width: "fit-content", padding: "1px 8px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, background: "#fcf3e1", color: "#a86a14", border: "1px solid #f0dca6" }}>
+                            <span title={t.orphanTooltip} style={{ display: "inline-flex", alignItems: "center", gap: 4, width: "fit-content", padding: "1px 8px", borderRadius: 99, fontSize: 10.5, fontWeight: 700, background: "#fcf3e1", color: "#a86a14", border: "1px solid #f0dca6" }}>
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                              ไม่พบใน Step 2
+                              {t.notFoundStep2}
                             </span>
                           )}
                         </div>
@@ -609,16 +623,16 @@ function Layer2MappingInner() {
                           <div style={{ background: "#f6f8fb", borderTop: "1px solid #eef1f6", padding: "14px 16px 16px 48px" }}>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 32px" }}>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการ embed AI ในรายวิชา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colEmbedMethod}</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.embedMethod || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               <div>
-                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>วิธีการใช้ AI Tool ในรายวิชา</div>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colAiUsage}</div>
                                 <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.aiUsage || <span style={{ color: "#b9c3cf" }}>—</span>}</div>
                               </div>
                               {row.notes && (
                                 <div style={{ gridColumn: "1 / -1" }}>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>หมายเหตุ</div>
+                                  <div style={{ fontSize: 11, fontWeight: 600, color: "#677889", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 5 }}>{t.colNotes}</div>
                                   <div style={{ fontSize: 13, color: "#14202e", lineHeight: 1.6 }}>{row.notes}</div>
                                 </div>
                               )}
@@ -647,11 +661,11 @@ function Layer2MappingInner() {
       {/* Sticky footer */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #dde3eb", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 40 }}>
         <div style={{ fontSize: 13, color: "#677889" }}>
-          <b style={{ color: "#14202e" }}>{rows.length}</b> รายวิชา · <b style={{ color: "#6a3eb5" }}>{schoolCount}</b> School · <b style={{ color: "#b6620e" }}>{industryCount}</b> Industry
+          <b style={{ color: "#14202e" }}>{rows.length}</b> {t.courses} · <b style={{ color: "#6a3eb5" }}>{schoolCount}</b> School · <b style={{ color: "#b6620e" }}>{industryCount}</b> Industry
         </div>
         {!isReadOnly && (
           <button className="btn btn--primary" onClick={saveMapping} disabled={saving}>
-            {saving ? <SpinIcon /> : <SaveIcon />} บันทึกการแมพ
+            {saving ? <SpinIcon /> : <SaveIcon />} {t.saveMapping}
           </button>
         )}
       </div>
@@ -659,14 +673,15 @@ function Layer2MappingInner() {
       {/* Slide-over panel */}
       <RowPanel open={panelOpen} row={panelRow} isNew={editIdx === null} onClose={closePanel} onSave={savePanel}
         suggestedCompetencies={(sub?.formData?.competencies ?? []) as FormCompetency[]}
-        toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((t) => t.trim()).filter(Boolean))))} />
+        toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((tp) => tp.trim()).filter(Boolean))))}
+        t={t} />
     </div>
   );
 }
 
 export default function Layer2MappingPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div></div>}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ color: "#677889", fontSize: 14 }}>Loading…</div></div>}>
       <Layer2MappingInner />
     </Suspense>
   );
