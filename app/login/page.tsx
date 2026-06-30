@@ -1,14 +1,16 @@
-// Server Component — reads passwords from env vars at request time.
-// Passwords are passed as props to LoginForm (Client Component).
-// They are NOT bundled into the client JS bundle.
+"use client";
 
 import { LoginForm } from "@/components/auth/LoginForm";
-
-export const metadata = {
-  title: "เข้าสู่ระบบ · AI-Ready Curriculum · BU",
-};
+import { useLang } from "@/lib/i18n";
 
 export default function LoginPage() {
+  const { lang, setLang, t } = useLang();
+
+  const feats = [
+    { text: t.loginFeat1, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
+    { text: t.loginFeat2, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+    { text: t.loginFeat3, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+  ];
 
   return (
     <div className="login-shell">
@@ -34,22 +36,17 @@ export default function LoginPage() {
             </span>
 
             <h1 style={{ fontSize: 42, fontWeight: 700, lineHeight: 1.15, margin: "0 0 16px", color: "white" }}>
-              เตรียมหลักสูตร<br />
-              ของท่านสู่ <em style={{ color: "#c9a44c", fontStyle: "normal" }}>โลก AI</em>
+              {t.loginHeroLine1}<br />
+              {t.loginHeroLine2} <em style={{ color: "#c9a44c", fontStyle: "normal" }}>{t.loginHeroGold}</em>
             </h1>
 
             <p style={{ fontSize: 16, color: "rgba(255,255,255,0.78)", lineHeight: 1.65, maxWidth: 440, margin: 0 }}>
-              ระบบบริหารหลักสูตรที่ช่วยให้ผู้ดูแลหลักสูตรยื่นขออนุมัติสมรรถนะด้านปัญญาประดิษฐ์
-              ติดตามสถานะ และจัดทำ Curriculum Mapping ครบในที่เดียว
+              {t.loginHeroDesc}
             </p>
 
             {/* Features */}
             <div className="login-brand-feats" style={{ display: "grid", gap: 14, marginTop: 36, maxWidth: 480 }}>
-              {[
-                { text: "ยื่นขออนุมัติหลักสูตร AI-Ready แบบ 3 ขั้นตอน", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> },
-                { text: "แมพรายวิชาเข้ากับสมรรถนะตามกรอบ UNESCO และ Industry", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
-                { text: "ติดตามสถานะคำขอ + แจ้งเตือนภายในระบบ", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
-              ].map(({ text, icon }) => (
+              {feats.map(({ text, icon }) => (
                 <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 12, fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.88)" }}>
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", display: "grid", placeItems: "center", flexShrink: 0, color: "#c9a44c" }}>{icon}</div>
                   {text}
@@ -63,15 +60,15 @@ export default function LoginPage() {
         <div style={{ position: "relative", zIndex: 1, fontSize: 12, color: "rgba(255,255,255,0.55)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>© 2026 Bangkok University · Office of Academic Affairs</div>
           <div style={{ display: "flex", gap: 12 }}>
-            <a href="/" style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none" }}>หน้าแรก</a>
-            <a href="#" style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none" }}>ช่วยเหลือ</a>
+            <a href="/" style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none" }}>{t.loginHomeLink}</a>
+            <a href="#" style={{ color: "rgba(255,255,255,0.78)", textDecoration: "none" }}>{t.loginHelpLink}</a>
           </div>
         </div>
       </aside>
 
-      {/* ── RIGHT: Form panel — Client Component ──────────────────── */}
+      {/* ── RIGHT: Form panel ─────────────────────────────────────── */}
       <main className="login-form-panel">
-        <LoginForm />
+        <LoginForm t={t} lang={lang} setLang={setLang} />
       </main>
     </div>
   );
