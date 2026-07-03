@@ -1,8 +1,4 @@
-const STEPS = [
-  { label: "ขั้นตอนที่ 1", name: "ข้อมูลคณะ" },
-  { label: "ขั้นตอนที่ 2", name: "AI Competencies" },
-  { label: "ขั้นตอนที่ 3", name: "ตรวจสอบและส่ง" },
-];
+import type { T } from "@/lib/i18n";
 
 const CheckIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
@@ -10,13 +6,18 @@ const CheckIcon = () => (
   </svg>
 );
 
-export function FormStepper({ current }: { current: number }) {
+export function FormStepper({ current, t }: { current: number; t: T }) {
+  const steps = [
+    { label: t.fStep1Label, name: t.fStep1Name },
+    { label: t.fStep2Label, name: t.fStep2Name },
+    { label: t.fStep3Label, name: t.fStep3Name },
+  ];
   return (
     <div className="stepper">
-      {STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         const cls = i < current ? "step done" : i === current ? "step active" : "step";
         return (
-          <div key={s.name} className={cls}>
+          <div key={i} className={cls}>
             <div className="step__bubble">
               {i < current ? <CheckIcon /> : i + 1}
             </div>

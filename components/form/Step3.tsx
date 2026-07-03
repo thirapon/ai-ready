@@ -1,4 +1,5 @@
 import type { FormData } from "./types";
+import type { T } from "@/lib/i18n";
 
 const CheckIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
@@ -12,12 +13,11 @@ const PencilIcon = () => (
   </svg>
 );
 
-function fmtDate(s: string) {
-  if (!s) return "—";
+function fmtDate(s: string, t: T) {
+  if (!s) return t.fDateEmpty;
   const d = new Date(s);
   if (isNaN(d.getTime())) return s;
-  const months = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+  return `${d.getDate()} ${t.fMonths[d.getMonth()]} ${d.getFullYear() + t.fYearOffset}`;
 }
 
 interface Props {
@@ -25,17 +25,18 @@ interface Props {
   goTo: (step: number) => void;
   consent: boolean;
   setConsent: (v: boolean) => void;
+  t: T;
 }
 
-export function Step3({ data, goTo, consent, setConsent }: Props) {
+export function Step3({ data, goTo, consent, setConsent, t }: Props) {
   const filledComps = data.competencies.filter((c) => c.name.trim());
 
   return (
     <>
       <div className="card__head">
-        <span className="card__step-label">ขั้นตอนที่ 3 จาก 3</span>
-        <h2 className="card__title">ตรวจสอบและส่งขออนุมัติ</h2>
-        <p className="card__desc">โปรดตรวจสอบข้อมูลทั้งหมดอีกครั้งก่อนส่ง — หากต้องการแก้ไข สามารถคลิก &ldquo;แก้ไข&rdquo; ในแต่ละส่วน</p>
+        <span className="card__step-label">{t.fS3StepLabel}</span>
+        <h2 className="card__title">{t.fS3Title}</h2>
+        <p className="card__desc">{t.fS3Desc}</p>
       </div>
       <div className="card__body">
         <div className="summary">
@@ -43,21 +44,21 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
           {/* Faculty info */}
           <div className="summary__card">
             <div className="summary__head">
-              <h4>ข้อมูลคณะและหลักสูตร</h4>
+              <h4>{t.fSumFaculty}</h4>
               <button className="summary__edit" type="button" onClick={() => goTo(0)}>
-                <PencilIcon /> &nbsp;แก้ไข
+                <PencilIcon /> &nbsp;{t.fEdit}
               </button>
             </div>
             <div className="summary__body">
               <dl className="kv">
-                <dt>หลักสูตร</dt>          <dd>{data.program   || "—"}</dd>
-                <dt>คณะ</dt>               <dd>{data.faculty ? `คณะ${data.faculty}` : "—"}</dd>
-                <dt>ผู้รับผิดชอบ</dt>      <dd>{data.owner     || "—"}</dd>
-                <dt>ตำแหน่ง</dt>            <dd>{data.position  || "—"}</dd>
-                <dt>อีเมลรับผลอนุมัติ</dt> <dd>{data.email     || "—"}</dd>
-                <dt>Industry Framework</dt> <dd>{data.framework || "—"}</dd>
-                <dt>วันที่ยื่นเสนอ</dt>    <dd>{fmtDate(data.submitDate)}</dd>
-                <dt>ภาคอุตสาหกรรม</dt>
+                <dt>{t.fKvProgram}</dt>    <dd>{data.program   || "—"}</dd>
+                <dt>{t.fKvFaculty}</dt>    <dd>{data.faculty ? `${t.fFacultyPrefix}${data.faculty}` : "—"}</dd>
+                <dt>{t.fKvOwner}</dt>      <dd>{data.owner     || "—"}</dd>
+                <dt>{t.fKvPosition}</dt>   <dd>{data.position  || "—"}</dd>
+                <dt>{t.fKvEmail}</dt>      <dd>{data.email     || "—"}</dd>
+                <dt>{t.fKvFramework}</dt>  <dd>{data.framework || "—"}</dd>
+                <dt>{t.fKvSubmitDate}</dt> <dd>{fmtDate(data.submitDate, t)}</dd>
+                <dt>{t.fKvSectors}</dt>
                 <dd>
                   {data.sectors.length ? (
                     <div className="chips">
@@ -72,9 +73,9 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
           {/* Competencies */}
           <div className="summary__card">
             <div className="summary__head">
-              <h4>AI Competencies ({filledComps.length})</h4>
+              <h4>{t.fSumComps} ({filledComps.length})</h4>
               <button className="summary__edit" type="button" onClick={() => goTo(1)}>
-                <PencilIcon /> &nbsp;แก้ไข
+                <PencilIcon /> &nbsp;{t.fEdit}
               </button>
             </div>
             <div className="summary__body" style={{ padding: 0 }}>
@@ -83,11 +84,11 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
                   <thead>
                     <tr>
                       <th className="num">#</th>
-                      <th>AI Competency</th>
-                      <th style={{ width: 110 }}>ประเภท</th>
-                      <th style={{ width: 120 }}>ชั้นปี</th>
-                      <th>คำอธิบาย</th>
-                      <th>หมายเหตุ</th>
+                      <th>{t.fThComp}</th>
+                      <th style={{ width: 110 }}>{t.fThType}</th>
+                      <th style={{ width: 120 }}>{t.fThYear}</th>
+                      <th>{t.fThDesc}</th>
+                      <th>{t.fThNote}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -114,7 +115,7 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
                   </tbody>
                 </table>
               ) : (
-                <div style={{ padding: 14, color: "var(--ink-500)" }}>ยังไม่ได้กรอก</div>
+                <div style={{ padding: 14, color: "var(--ink-500)" }}>{t.fNotFilled}</div>
               )}
             </div>
           </div>
@@ -128,13 +129,13 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
               </svg>
             </div>
             <div>
-              <div className="banner__title">ขั้นตอนการอนุมัติหลังส่งคำขอ</div>
+              <div className="banner__title">{t.fWfTitle}</div>
               <div className="banner__text" style={{ lineHeight: 1.7 }}>
-                เมื่อท่านกด <b>&ldquo;ส่งขออนุมัติ&rdquo;</b> ระบบจะดำเนินการดังนี้:<br />
-                <b>1.</b> ส่งสำเนาคำขอไปยังท่านและ{data.faculty ? `คณะ${data.faculty}` : "คณะที่เลือก"}<br />
-                <b>2.</b> ส่งต่อไปยัง <b>คณะกรรมการ AI-Ready Curriculum</b> เพื่อพิจารณาภายใน 7 วันทำการ<br />
-                <b>3.</b> ท่านจะได้รับผลการพิจารณาพร้อมข้อเสนอแนะ (อนุมัติ / ขอแก้ไข / ไม่อนุมัติ)<br />
-                <b>4.</b> หากอนุมัติ จะปลดล็อก Curriculum Mapping Layer 1 และ 2
+                {t.fWfIntro1} <b>&ldquo;{t.fSubmit}&rdquo;</b> {t.fWfIntro2}<br />
+                <b>1.</b> {t.fWfStep1}{data.faculty ? `${t.fFacultyPrefix}${data.faculty}` : t.fWfSelectedFaculty}<br />
+                <b>2.</b> {t.fWfStep2a} <b>{t.fWfCommittee}</b> {t.fWfStep2b}<br />
+                <b>3.</b> {t.fWfStep3}<br />
+                <b>4.</b> {t.fWfStep4}
               </div>
             </div>
           </div>
@@ -147,10 +148,7 @@ export function Step3({ data, goTo, consent, setConsent }: Props) {
             }}>
               {consent && <CheckIcon />}
             </div>
-            <div>
-              ข้าพเจ้าขอรับรองว่าข้อมูลที่ระบุข้างต้นเป็นความจริงทุกประการ
-              และเป็นข้อมูลที่ผ่านความเห็นชอบจากคณะกรรมการบริหารหลักสูตรเรียบร้อยแล้ว
-            </div>
+            <div>{t.fConsent}</div>
           </div>
 
         </div>

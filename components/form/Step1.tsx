@@ -1,5 +1,6 @@
 import type { FormData } from "./types";
 import { FACULTY_PROGRAMS, SECTORS } from "./types";
+import type { T } from "@/lib/i18n";
 
 const CheckIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
@@ -11,9 +12,10 @@ interface Props {
   data: FormData;
   set: (key: keyof FormData, value: unknown) => void;
   lockedFaculty?: string; // pre-filled from session — user cannot change
+  t: T;
 }
 
-export function Step1({ data, set, lockedFaculty }: Props) {
+export function Step1({ data, set, lockedFaculty, t }: Props) {
   const isLocked = !!lockedFaculty;
   const facultyList = Object.keys(FACULTY_PROGRAMS);
   const programs = data.faculty ? (FACULTY_PROGRAMS[data.faculty] ?? []) : [];
@@ -34,32 +36,32 @@ export function Step1({ data, set, lockedFaculty }: Props) {
   return (
     <>
       <div className="card__head">
-        <span className="card__step-label">ขั้นตอนที่ 1 จาก 3</span>
-        <h2 className="card__title">ข้อมูลคณะและหลักสูตร</h2>
-        <p className="card__desc">กรอกข้อมูลพื้นฐานของหลักสูตรที่ขอประเมินความพร้อมด้าน AI พร้อมระบุผู้รับผิดชอบและกรอบมาตรฐานที่ใช้อ้างอิง</p>
+        <span className="card__step-label">{t.fS1StepLabel}</span>
+        <h2 className="card__title">{t.fS1Title}</h2>
+        <p className="card__desc">{t.fS1Desc}</p>
       </div>
       <div className="card__body">
         <div className="field-grid">
 
           {/* คณะ — locked to session when logged in as faculty */}
           <div className="field">
-            <label className="field__label">คณะ <span className="req">*</span></label>
+            <label className="field__label">{t.fLblFaculty} <span className="req">*</span></label>
             {isLocked ? (
               <div style={{
                 border: "1px solid var(--ink-200)", borderRadius: 6, padding: "10px 12px",
                 fontSize: 14, color: "var(--ink-900)", background: "var(--ink-50)",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
               }}>
-                <span>คณะ{data.faculty}</span>
+                <span>{t.fFacultyPrefix}{data.faculty}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-500)", letterSpacing: "0.04em", background: "var(--ink-100)", padding: "2px 8px", borderRadius: 4 }}>
-                  จากบัญชีที่ login
+                  {t.fFromLogin}
                 </span>
               </div>
             ) : (
               <select className="select" value={data.faculty} onChange={(e) => onFacultyChange(e.target.value)}>
-                <option value="">— เลือกคณะ —</option>
+                <option value="">{t.fSelectFaculty}</option>
                 {facultyList.map((f) => (
-                  <option key={f} value={f}>คณะ{f}</option>
+                  <option key={f} value={f}>{t.fFacultyPrefix}{f}</option>
                 ))}
               </select>
             )}
@@ -67,9 +69,9 @@ export function Step1({ data, set, lockedFaculty }: Props) {
 
           {/* หลักสูตร */}
           <div className="field">
-            <label className="field__label">หลักสูตร <span className="req">*</span></label>
+            <label className="field__label">{t.fLblProgram} <span className="req">*</span></label>
             {!data.faculty && (
-              <p className="field__hint" style={{ color: "var(--ink-400)" }}>เลือกคณะก่อนเพื่อแสดงรายชื่อหลักสูตร</p>
+              <p className="field__hint" style={{ color: "var(--ink-400)" }}>{t.fHintProgramFirst}</p>
             )}
             <select
               className="select"
@@ -77,7 +79,7 @@ export function Step1({ data, set, lockedFaculty }: Props) {
               onChange={(e) => set("program", e.target.value)}
               disabled={!data.faculty}
             >
-              <option value="">{data.faculty ? "— เลือกหลักสูตร —" : "— กรุณาเลือกคณะก่อน —"}</option>
+              <option value="">{data.faculty ? t.fSelectProgram : t.fSelectFacultyFirst}</option>
               {programs.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -86,47 +88,47 @@ export function Step1({ data, set, lockedFaculty }: Props) {
 
           {/* ชื่อผู้รับผิดชอบ */}
           <div className="field">
-            <label className="field__label">ชื่อผู้รับผิดชอบหลักสูตร <span className="req">*</span></label>
-            <input className="input" type="text" placeholder="เช่น ผศ.ดร. สมชาย ใจดี"
+            <label className="field__label">{t.fLblOwner} <span className="req">*</span></label>
+            <input className="input" type="text" placeholder={t.fPhOwner}
               value={data.owner} onChange={(e) => set("owner", e.target.value)} />
           </div>
 
           {/* ตำแหน่ง */}
           <div className="field">
-            <label className="field__label">ตำแหน่ง <span className="req">*</span></label>
-            <input className="input" type="text" placeholder="เช่น ประธานหลักสูตร / หัวหน้าภาควิชา"
+            <label className="field__label">{t.fLblPosition} <span className="req">*</span></label>
+            <input className="input" type="text" placeholder={t.fPhPosition}
               value={data.position} onChange={(e) => set("position", e.target.value)} />
           </div>
 
           {/* อีเมล */}
           <div className="field field--full">
-            <label className="field__label">อีเมลสำหรับรับผลอนุมัติ <span className="req">*</span></label>
-            <p className="field__hint">ระบบจะส่งผลการพิจารณา (อนุมัติ / ขอแก้ไข / ไม่อนุมัติ) ไปยังอีเมลนี้</p>
-            <input className="input" type="email" placeholder="เช่น name@bu.ac.th"
+            <label className="field__label">{t.fLblEmail} <span className="req">*</span></label>
+            <p className="field__hint">{t.fHintEmail}</p>
+            <input className="input" type="email" placeholder={t.fPhEmail}
               value={data.email} onChange={(e) => set("email", e.target.value)} />
           </div>
 
           {/* Framework */}
           <div className="field">
-            <label className="field__label">Industry Framework ที่อ้างอิง <span className="req">*</span></label>
-            <p className="field__hint">ระบุชื่อกรอบมาตรฐาน / แหล่งอ้างอิง</p>
+            <label className="field__label">{t.fLblFramework} <span className="req">*</span></label>
+            <p className="field__hint">{t.fHintFramework}</p>
             <input className="input" type="text"
-              placeholder="เช่น UNESCO AI Competency Framework for Students (2024)"
+              placeholder={t.fPhFramework}
               value={data.framework} onChange={(e) => set("framework", e.target.value)} />
           </div>
 
           {/* วันที่ยื่น */}
           <div className="field">
-            <label className="field__label">วันที่ยื่นเสนอ <span className="req">*</span></label>
-            <p className="field__hint">วันที่ต้องการให้คณะกรรมการพิจารณา</p>
+            <label className="field__label">{t.fLblSubmitDate} <span className="req">*</span></label>
+            <p className="field__hint">{t.fHintSubmitDate}</p>
             <input className="input" type="date"
               value={data.submitDate} onChange={(e) => set("submitDate", e.target.value)} />
           </div>
 
           {/* ภาคอุตสาหกรรม */}
           <div className="field field--full">
-            <label className="field__label">ภาคอุตสาหกรรมที่เกี่ยวข้อง <span className="req">*</span></label>
-            <p className="field__hint">เลือกได้มากกว่าหนึ่งภาคส่วน — ระบุกลุ่มอาชีพปลายทางที่หลักสูตรนี้เตรียมบัณฑิต</p>
+            <label className="field__label">{t.fLblSectors} <span className="req">*</span></label>
+            <p className="field__hint">{t.fHintSectors}</p>
             <div className="checkgrid">
               {SECTORS.map((s) => {
                 const on = data.sectors.includes(s);

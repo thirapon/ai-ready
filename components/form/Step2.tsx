@@ -1,4 +1,5 @@
 import type { FormData, Competency } from "./types";
+import type { T } from "@/lib/i18n";
 
 const TrashIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -16,9 +17,10 @@ const PlusIcon = () => (
 interface Props {
   data: FormData;
   setRows: (rows: Competency[]) => void;
+  t: T;
 }
 
-export function Step2({ data, setRows }: Props) {
+export function Step2({ data, setRows, t }: Props) {
   const update = (id: number, field: keyof Competency, value: unknown) => {
     setRows(data.competencies.map((r) => r.id === id ? { ...r, [field]: value } : r));
   };
@@ -44,9 +46,9 @@ export function Step2({ data, setRows }: Props) {
   return (
     <>
       <div className="card__head">
-        <span className="card__step-label">ขั้นตอนที่ 2 จาก 3</span>
-        <h2 className="card__title">สมรรถนะด้านปัญญาประดิษฐ์ (AI Competencies)</h2>
-        <p className="card__desc">ระบุสมรรถนะ AI ที่ต้องการให้ผู้เรียนมีหลังจบหลักสูตร — แนะนำให้กรอกอย่างน้อย 5 สมรรถนะ</p>
+        <span className="card__step-label">{t.fS2StepLabel}</span>
+        <h2 className="card__title">{t.fS2Title}</h2>
+        <p className="card__desc">{t.fS2Desc}</p>
       </div>
       <div className="card__body">
         <div className="comp-list">
@@ -56,11 +58,11 @@ export function Step2({ data, setRows }: Props) {
                 <span className="comp-card__num">{String(i + 1).padStart(2, "0")}</span>
                 <input
                   className="comp-card__name"
-                  placeholder="ชื่อสมรรถนะ — เช่น Prompt Engineering"
+                  placeholder={t.fPhCompName}
                   value={row.name}
                   onChange={(e) => update(row.id, "name", e.target.value)}
                 />
-                <button className="row-del" onClick={() => delRow(row.id)} aria-label="ลบสมรรถนะนี้" type="button">
+                <button className="row-del" onClick={() => delRow(row.id)} aria-label={t.fDelComp} type="button">
                   <TrashIcon />
                 </button>
               </div>
@@ -68,7 +70,7 @@ export function Step2({ data, setRows }: Props) {
               <div className="comp-card__meta">
                 {/* Source toggle */}
                 <div className="comp-meta__group">
-                  <span className="comp-meta__label">ประเภท</span>
+                  <span className="comp-meta__label">{t.fLblType}</span>
                   <div className="seg">
                     {(["school", "industry"] as const).map((src) => (
                       <button key={src} type="button"
@@ -81,13 +83,13 @@ export function Step2({ data, setRows }: Props) {
                 </div>
                 {/* Year toggles */}
                 <div className="comp-meta__group">
-                  <span className="comp-meta__label">ชั้นปีที่สอน</span>
+                  <span className="comp-meta__label">{t.fLblYears}</span>
                   <div className="yr-mini-row">
                     {[1, 2, 3, 4, 5].map((y) => (
                       <button key={y} type="button"
                         className={`yr-mini${row.years.includes(y) ? " is-on" : ""}`}
                         onClick={() => toggleYear(row.id, y)}
-                        title={`ชั้นปีที่ ${y}`}>
+                        title={t.fYearTitle(y)}>
                         {y}
                       </button>
                     ))}
@@ -97,16 +99,16 @@ export function Step2({ data, setRows }: Props) {
 
               <div className="comp-card__fields">
                 <div className="comp-field">
-                  <label className="comp-field__label">คำอธิบาย</label>
+                  <label className="comp-field__label">{t.fLblDesc}</label>
                   <textarea className="textarea" rows={3}
-                    placeholder="อธิบายว่าสมรรถนะนี้ครอบคลุมอะไรบ้าง ผู้เรียนต้องทำอะไรได้หลังจบหลักสูตร..."
+                    placeholder={t.fPhDesc}
                     value={row.desc}
                     onChange={(e) => update(row.id, "desc", e.target.value)} />
                 </div>
                 <div className="comp-field">
-                  <label className="comp-field__label">หมายเหตุ</label>
+                  <label className="comp-field__label">{t.fLblNote}</label>
                   <textarea className="textarea" rows={3}
-                    placeholder="รายวิชาที่เกี่ยวข้อง / แหล่งอ้างอิง / เงื่อนไขพิเศษ (ถ้ามี)"
+                    placeholder={t.fPhNote}
                     value={row.note}
                     onChange={(e) => update(row.id, "note", e.target.value)} />
                 </div>
@@ -116,7 +118,7 @@ export function Step2({ data, setRows }: Props) {
         </div>
 
         <button className="tbl-add" type="button" onClick={addRow}>
-          <PlusIcon /> เพิ่มสมรรถนะใหม่
+          <PlusIcon /> {t.fAddComp}
         </button>
 
         <div className="banner banner--info" style={{ marginTop: 18 }}>
@@ -126,8 +128,8 @@ export function Step2({ data, setRows }: Props) {
             </svg>
           </div>
           <div>
-            <div className="banner__title">เคล็ดลับการกรอกข้อมูล</div>
-            <div className="banner__text">เน้นสมรรถนะที่วัดและประเมินได้จริง โดยใช้ School AI Competency Framework เป็นตัวหลัก ถ้ายังไม่พอสามารถใช้ Industry AI Competency Framework เพิ่มเติม</div>
+            <div className="banner__title">{t.fTipTitle}</div>
+            <div className="banner__text">{t.fTipText}</div>
           </div>
         </div>
       </div>

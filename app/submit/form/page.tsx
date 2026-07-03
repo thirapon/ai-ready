@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
+import { useLang } from "@/lib/i18n";
 import { FormStepper } from "@/components/form/FormStepper";
 import { Step1 } from "@/components/form/Step1";
 import { Step2 } from "@/components/form/Step2";
@@ -34,12 +35,13 @@ function FormPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const submissionId = searchParams.get("id"); // null = new submission
+  const { lang, setLang, t } = useLang();
 
   const [session, setSession]   = useState<Session | null>(null);
   const [data, setData]         = useState<FormData>(INITIAL_DATA);
   const [step, setStep]         = useState(0);
   const [consent, setConsent]   = useState(false);
-  const [saveMsg, setSaveMsg]   = useState("บันทึกอัตโนมัติแล้ว");
+  const [saveState, setSaveState] = useState<"auto" | "saving" | "saved">("auto");
   const [saving, setSaving]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [version, setVersion]   = useState(0);
@@ -89,10 +91,10 @@ function FormPageInner() {
   // Auto-save draft to localStorage
   useEffect(() => {
     if (!session) return;
-    setSaveMsg("กำลังบันทึก...");
+    setSaveState("saving");
     localStorage.setItem(draftKey, JSON.stringify(data));
-    const t = setTimeout(() => setSaveMsg("บันทึกอัตโนมัติแล้ว"), 600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSaveState("auto"), 600);
+    return () => clearTimeout(timer);
   }, [data, session, draftKey]);
 
   const setField = (key: keyof FormData, value: unknown) =>
@@ -126,7 +128,7 @@ function FormPageInner() {
         if (!submissionId && result.submission?.id) {
           router.replace(`/submit/form?id=${result.submission.id}`, { scroll: false });
         }
-        setSaveMsg("บันทึกแล้ว ✓");
+        setSaveState("saved");
       }
     } catch { /* ignore */ }
     finally { setSaving(false); }
@@ -152,10 +154,10 @@ function FormPageInner() {
         localStorage.removeItem(draftKey);
         router.push("/submit");
       } else {
-        alert(result.error ?? "เกิดข้อผิดพลาด กรุณาลองใหม่");
+        alert(result.error ?? t.errorGeneral);
       }
     } catch {
-      alert("ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง");
+      alert(t.errorConnect);
     } finally {
       setSubmitting(false);
     }
@@ -164,30 +166,39 @@ function FormPageInner() {
   if (!session) {
     return (
       <div style={{ minHeight: "100vh", background: "#f6f8fb", display: "grid", placeItems: "center" }}>
-        <div style={{ color: "#677889", fontSize: 14 }}>กำลังโหลด…</div>
+        <div style={{ color: "#677889", fontSize: 14 }}>{t.loading}</div>
       </div>
     );
   }
 
   const valid = isStepValid(step, data, consent);
   const isNew = !submissionId;
-  const crumb = isNew ? "สร้างคำขออนุมัติใหม่" : "แก้ไขคำขออนุมัติ";
+  const crumb = isNew ? t.fCrumbNew : t.fCrumbEdit;
+  const saveMsg = saveState === "saving" ? t.savingMsg : saveState === "saved" ? t.savedMsg : t.autoSaved;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f6f8fb" }}>
       <header className="app-topbar">
         <div className="app-topbar__logo">BU</div>
         <div>
-          <div className="app-topbar__title">ระบบบริหารหลักสูตร AI-Ready</div>
-          <div className="app-topbar__sub">มหาวิทยาลัยกรุงเทพ · Office of Academic Affairs</div>
+          <div className="app-topbar__title">{t.sysTitle}</div>
+          <div className="app-topbar__sub">{t.sysSub}</div>
         </div>
         <div style={{ flex: 1 }} />
         <span className="savetag"><span className="dot" />{saveMsg}</span>
+        <div style={{ display: "flex", border: "1px solid #dde3eb", borderRadius: 99, overflow: "hidden", flexShrink: 0 }}>
+          {(["th", "en"] as const).map((l) => (
+            <button key={l} onClick={() => setLang(l)}
+              style={{ padding: "4px 11px", background: lang === l ? "#1a4f8a" : "white", color: lang === l ? "white" : "#677889", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}>
+              {l === "th" ? "ไทย" : "EN"}
+            </button>
+          ))}
+        </div>
         <div style={{ width: 1, height: 28, background: "#dde3eb", flexShrink: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ textAlign: "right", lineHeight: 1.2 }}>
             <div style={{ fontWeight: 600, color: "#14202e", fontSize: 14 }}>{session.name}</div>
-            <div style={{ fontSize: 11.5, color: "#677889" }}>ผู้ยื่นคำขอ</div>
+            <div style={{ fontSize: 11.5, color: "#677889" }}>{t.roleFaculty}</div>
           </div>
           <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#dbe7f4", color: "#1a4f8a", display: "grid", placeItems: "center", fontWeight: 600, fontSize: 12 }}>
             {session.name.replace(/^คณะ/, "").slice(0, 2)}
@@ -198,51 +209,51 @@ function FormPageInner() {
       <main style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 24px 60px", display: "flex", flexDirection: "column", gap: 24 }}>
         <div className="page-head">
           <div>
-            <div className="page-head__crumbs">ระบบ AI-Ready Curriculum &nbsp;›&nbsp; <span>{crumb}</span></div>
-            <h1 className="page-head__title">ขออนุมัติ School/Industry AI Competency Framework</h1>
-            <p className="page-head__desc">กรอกข้อมูลหลักสูตรและสมรรถนะ AI ให้ครบถ้วนก่อนส่งขออนุมัติ</p>
+            <div className="page-head__crumbs">{t.fCrumbSystem} &nbsp;›&nbsp; <span>{crumb}</span></div>
+            <h1 className="page-head__title">{t.fTitle}</h1>
+            <p className="page-head__desc">{t.fDesc}</p>
           </div>
           <div className="page-head__meta">
-            <b>{refId ? "เลขอ้างอิงคำขอ" : "เอกสารร่าง"}</b>
-            {refId ?? (isNew ? "หลักสูตรใหม่" : "DRAFT")}<br />
-            {version > 0 ? `ส่งแล้ว ${version} ครั้ง` : "ยังไม่ได้ส่ง"}
+            <b>{refId ? t.fMetaRefLabel : t.fMetaDraftLabel}</b>
+            {refId ?? (isNew ? t.fMetaNewProgram : t.fMetaDraft)}<br />
+            {version > 0 ? t.fMetaSubmittedN(version) : t.fMetaNotSubmitted}
           </div>
         </div>
 
-        <FormStepper current={step} />
+        <FormStepper current={step} t={t} />
 
         <div className="card">
-          {step === 0 && <Step1 data={data} set={setField} lockedFaculty={session?.name.replace(/^คณะ/, "").trim()} />}
-          {step === 1 && <Step2 data={data} setRows={setComps} />}
-          {step === 2 && <Step3 data={data} goTo={goTo} consent={consent} setConsent={setConsent} />}
+          {step === 0 && <Step1 data={data} set={setField} lockedFaculty={session?.name.replace(/^คณะ/, "").trim()} t={t} />}
+          {step === 1 && <Step2 data={data} setRows={setComps} t={t} />}
+          {step === 2 && <Step3 data={data} goTo={goTo} consent={consent} setConsent={setConsent} t={t} />}
 
           <div className="card__foot">
             <div>
               {step > 0 ? (
                 <button className="btn" type="button" onClick={onBack}>
-                  <ChevLeft /> ย้อนกลับ
+                  <ChevLeft /> {t.fBack}
                 </button>
               ) : (
                 <button className="btn" type="button" onClick={() => router.push("/submit")}>
-                  ยกเลิก
+                  {t.fCancel}
                 </button>
               )}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 13, color: "var(--ink-500)" }}>
-                ขั้นตอนที่ <b style={{ color: "var(--bu-blue)" }}>{step + 1}</b> จาก 3
+                {t.fStepOf(step + 1)}
               </span>
               <button className="btn" type="button" onClick={saveDraft} disabled={saving}>
-                {saving ? <SpinIcon /> : <SaveIcon />} บันทึกฉบับร่าง
+                {saving ? <SpinIcon /> : <SaveIcon />} {t.fSaveDraft}
               </button>
               {step < 2 ? (
                 <button className="btn btn--primary" type="button" onClick={onNext} disabled={!valid}>
-                  ถัดไป <ChevRight />
+                  {t.fNext} <ChevRight />
                 </button>
               ) : (
                 <button className="btn btn--primary btn--lg" type="button" onClick={onSubmit} disabled={!valid || submitting}>
                   {submitting ? <SpinIcon /> : <SendIcon />}
-                  {version > 0 ? "ส่งขออนุมัติอีกครั้ง" : "ส่งขออนุมัติ"}
+                  {version > 0 ? t.fResubmit : t.fSubmit}
                 </button>
               )}
             </div>
@@ -250,7 +261,7 @@ function FormPageInner() {
         </div>
 
         <div style={{ textAlign: "center", fontSize: 12, color: "#8b99a8" }}>
-          ระบบบริหารหลักสูตร AI-Ready · มหาวิทยาลัยกรุงเทพ
+          {t.fFooter}
         </div>
       </main>
     </div>
