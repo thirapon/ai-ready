@@ -138,7 +138,19 @@ const { createClient } = require('@supabase/supabase-js');
 // ต้องใช้ NODE_OPTIONS=--openssl-legacy-provider
 // ใช้ regex นี้ extract private key:
 const get = (k) => { const m = env.match(new RegExp(k+'="?(.+?)"?\\s*$', 'm')); return m ? m[1].trim().replace(/\\n/g,'\n') : ''; };
-// Range: 'Raw Data!A2:T'
+
+// ⚠️ googleapis เวอร์ชันปัจจุบันใช้ positional constructor ไม่ได้แล้ว
+// ต้องใช้ options-object form ไม่งั้นจะ error "No key or keyFile set":
+const jwt = new google.auth.JWT({
+  email: get('GOOGLE_SHEETS_CLIENT_EMAIL'),
+  key: get('GOOGLE_SHEETS_PRIVATE_KEY'),
+  scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+});
+await jwt.authorize();
+const sheets = google.sheets({ version: 'v4', auth: jwt });
+
+// Range: 'Raw Data!A2:T'  (20 คอลัมน์ 0-indexed)
+// col 12 = score, col 14 = level label (📈 AI Integrator / 🏆 AI Champion / 🌱 AI Aware)
 // col 17 = qb (อยากพัฒนาอะไร), col 18 = qc (ต้องการ support อะไร)
 ```
 
