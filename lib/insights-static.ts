@@ -1,16 +1,16 @@
 // ─── Static AI-generated insights ────────────────────────────────────────────
 // Generated: 2026-07-06
-// Source: 120 Faculty Readiness responses (Google Sheets) + 16 curriculum submissions (Supabase, 13 fully mapped L1+L2)
+// Source: 187 Faculty Readiness responses (Google Sheets) + 20 curriculum submissions (Supabase, 13 fully mapped L1+L2)
 // To update: pull fresh data → analyze in Claude conversation → overwrite this file
 
 export const INSIGHTS_GENERATED_AT = "2026-07-06";
-export const INSIGHTS_FACULTY_TOTAL = 120;
-export const INSIGHTS_PROGRAMS_TOTAL = 16;
+export const INSIGHTS_FACULTY_TOTAL = 187;
+export const INSIGHTS_PROGRAMS_TOTAL = 20;
 
 // ─── Executive Summary ────────────────────────────────────────────────────────
-export const executiveSummary = `มหาวิทยาลัยกรุงเทพมีคณาจารย์ตอบแบบประเมินความพร้อมด้าน AI แล้ว 120 คนจาก 10 คณะ โดย 91% อยู่ในระดับ AI Integrator–Champion (Champion 31%) ซึ่งสูงกว่าค่าเฉลี่ยสถาบันการศึกษาทั่วไปอย่างชัดเจน และเพิ่มขึ้นจากรอบก่อนที่ 70% อย่างไรก็ตาม ความพร้อมนี้ยังถูกขัดขวางด้วยอุปสรรคเดิม 3 ประการ ได้แก่ การขาด institutional AI license ระดับ Pro สำหรับใช้สอน การไม่มีสื่อการสอนสำเร็จรูป (use case, prompt เฉพาะสาขา, rubric) ที่พร้อมใช้ทันที และภาระงานสอนที่ไม่เปิดพื้นที่ให้พัฒนาตนเอง — และปรากฏอุปสรรคใหม่คือการขาดทิศทาง AI ระดับมหาวิทยาลัยที่ชัดเจน ทำให้แต่ละคณะต่างคนต่างทำ
+export const executiveSummary = `มหาวิทยาลัยกรุงเทพมีคณาจารย์ตอบแบบประเมินความพร้อมด้าน AI แล้ว 187 คนจาก 11 คณะ โดย 92% อยู่ในระดับ AI Integrator–Champion (Champion 34%) ซึ่งสูงกว่าค่าเฉลี่ยสถาบันการศึกษาทั่วไปอย่างชัดเจน และเพิ่มขึ้นต่อเนื่องจากรอบก่อน อย่างไรก็ตาม ความพร้อมนี้ยังถูกขัดขวางด้วยอุปสรรคเดิม 3 ประการ ได้แก่ การขาด institutional AI license ระดับ Pro สำหรับใช้สอน การไม่มีสื่อการสอนสำเร็จรูป (use case, prompt เฉพาะสาขา, rubric) ที่พร้อมใช้ทันที และภาระงานสอนที่ไม่เปิดพื้นที่ให้พัฒนาตนเอง — และปรากฏอุปสรรคใหม่คือการขาดทิศทาง AI ระดับมหาวิทยาลัยที่ชัดเจน ทำให้แต่ละคณะต่างคนต่างทำ
 
-ด้านหลักสูตร มี 16 โปรแกรมส่งแผน AI Competency แล้ว ครอบคลุม 8 คณะ โดย 13 โปรแกรมทำ Curriculum Mapping L1+L2 ครบ รอบนี้มีผู้เล่นใหม่เข้ามาหลายราย: วิศวกรรมไฟฟ้า มัลติมีเดีย และสถาปัตยกรรมภายใน map L2 เพิ่มแล้ว ส่วนวิทยาลัยนานาชาติ (2 หลักสูตร) และนิเทศศาสตร์เพิ่งเริ่มส่ง (ยัง draft ยังไม่ map) ทุกหลักสูตรมี pattern ร่วมกันคือเริ่มด้วย AI Literacy ปีที่ 1 และปิดท้ายด้วย Responsible AI / Professional Practice ปีที่ 4 สอดคล้องกับ UNESCO AI Competency Framework มิติบังคับ Human (8/13) และ Ethics (10/13) ครอบคลุมดี ส่วน Techniques ขยับขึ้นเป็น 6/13 และ Design 4/13 — สองมิติหลังไม่บังคับ หลักสูตรที่ขาดใช้ L2 competency ทดแทนได้
+ด้านหลักสูตร มี 20 โปรแกรมส่งแผน AI Competency แล้ว ครอบคลุม 10 คณะ โดย 13 โปรแกรมทำ Curriculum Mapping L1+L2 ครบ รอบนี้มีผู้เล่นใหม่เข้ามาอีก 4 ราย: การตลาดดิจิทัล (บริหารธุรกิจ, 10 สมรรถนะ ครบวงจร prompt→analytics→automation→ROI, อยู่ระหว่างแก้ไข), การจัดการการโรงแรมและภาษาอังกฤษ (มนุษยศาสตร์ฯ) และการผลิตอีเว้นท์ (นิเทศศาสตร์) — ทั้งหมดยัง draft/changes ยังไม่ได้ map ส่วนนิติศาสตร์อนุมัติแล้ว ทุกหลักสูตรที่ map มี pattern ร่วมคือเริ่มด้วย AI Literacy ปีที่ 1 และปิดท้ายด้วย Responsible AI / Professional Practice ปีที่ 4 สอดคล้องกับ UNESCO AI Competency Framework มิติบังคับ Human (8/13) และ Ethics (10/13) ครอบคลุมดี ส่วน Techniques (6/13) และ Design (4/13) ไม่บังคับ ใช้ L2 competency ทดแทนได้
 
 ข้อเสนอเร่งด่วนสำหรับผู้บริหาร: (1) จัดหา institutional AI license ระดับ Pro ให้บุคลากรและนักศึกษา (2) ออกทิศทาง/นโยบาย AI ระดับมหาวิทยาลัยพร้อมแนวปฏิบัติ academic integrity และ student AI usage guideline (3) สร้างคลังสื่อการสอนสำเร็จรูป (use case, prompt, rubric) ก่อนเปิดภาคการศึกษา 1/2569`;
 
@@ -99,13 +99,13 @@ export const supportNeeds = [
 
 // ─── Competency Patterns ──────────────────────────────────────────────────────
 export const competencyPatterns = [
-  { name: "AI Literacy & Fundamentals",    count: 13, total: 16, years: "ปี 1",     pct: 81, color: "#1a4f8a" },
-  { name: "Responsible AI & Ethics",       count: 12, total: 16, years: "ปี 2–4",   pct: 75, color: "#b53030" },
-  { name: "AI in Professional Practice",   count: 11, total: 16, years: "ปี 3–4",   pct: 69, color: "#0f7b6c" },
-  { name: "Data Analytics & ML",           count: 8,  total: 16, years: "ปี 2–4",   pct: 50, color: "#b6620e" },
-  { name: "Generative AI / Creative AI",   count: 7,  total: 16, years: "ปี 2–3",   pct: 44, color: "#6a3eb5" },
-  { name: "AI System Design & Integration",count: 6,  total: 16, years: "ปี 3–4",   pct: 38, color: "#677889" },
-  { name: "Deployment & Governance",       count: 5,  total: 16, years: "ปี 4",     pct: 31, color: "#3a4859" },
+  { name: "AI Literacy & Fundamentals",    count: 14, total: 20, years: "ปี 1",     pct: 70, color: "#1a4f8a" },
+  { name: "Responsible AI & Ethics",       count: 13, total: 20, years: "ปี 2–4",   pct: 65, color: "#b53030" },
+  { name: "AI in Professional Practice",   count: 12, total: 20, years: "ปี 3–4",   pct: 60, color: "#0f7b6c" },
+  { name: "Data Analytics & ML",           count: 9,  total: 20, years: "ปี 2–4",   pct: 45, color: "#b6620e" },
+  { name: "Generative AI / Creative AI",   count: 8,  total: 20, years: "ปี 2–3",   pct: 40, color: "#6a3eb5" },
+  { name: "AI System Design & Integration",count: 6,  total: 20, years: "ปี 3–4",   pct: 30, color: "#677889" },
+  { name: "Deployment & Governance",       count: 6,  total: 20, years: "ปี 4",     pct: 30, color: "#3a4859" },
 ];
 
 // ─── UNESCO Gap Analysis (from real L1 mapping data) ─────────────────────────
@@ -182,6 +182,10 @@ export const unescoHeatmap = [
   { prog: "Business Admin (Intl)", shortProg: "BBA Intl",     fac: "วิทยาลัยนานาชาติ",         human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
   { prog: "Media & Comm (Intl)",   shortProg: "MC Intl",      fac: "วิทยาลัยนานาชาติ",         human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
   { prog: "การผลิตเนื้อหาดิจิทัลฯ", shortProg: "เนื้อหาดิจิทัล", fac: "นิเทศศาสตร์",             human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
+  { prog: "การตลาดดิจิทัล",        shortProg: "การตลาดดิจิทัล", fac: "บริหารธุรกิจ",             human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
+  { prog: "การจัดการการโรงแรม",    shortProg: "การโรงแรม",     fac: "มนุษยศาสตร์ฯ",             human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
+  { prog: "ภาษาอังกฤษ",            shortProg: "ภาษาอังกฤษ",    fac: "มนุษยศาสตร์ฯ",             human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
+  { prog: "การผลิตอีเว้นท์ฯ",       shortProg: "อีเว้นท์",      fac: "นิเทศศาสตร์",             human: 0, ethics: 0, techniques: 0, design: 0, mapped: false },
 ];
 
 // ─── L2 AI Embed & Tool Assessment ───────────────────────────────────────────
@@ -384,6 +388,10 @@ export const l2Assessment = [
   { prog: "Business Administration (Intl)", shortProg: "BBA Intl",  entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (pending) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
   { prog: "Media and Communication (Intl)", shortProg: "MC Intl",   entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (draft) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
   { prog: "การผลิตเนื้อหาสร้างสรรค์ฯ", shortProg: "เนื้อหาดิจิทัล", entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (draft) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
+  { prog: "การตลาดดิจิทัล", shortProg: "การตลาดดิจิทัล", entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "10 สมรรถนะครบวงจร แต่ status changes — ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
+  { prog: "การจัดการการโรงแรม", shortProg: "การโรงแรม", entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (draft) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
+  { prog: "ภาษาอังกฤษ", shortProg: "ภาษาอังกฤษ", entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (draft) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
+  { prog: "การผลิตอีเว้นท์ฯ", shortProg: "อีเว้นท์", entries: 0, fit: "none" as const, embedDepth: "none" as const, topTools: [], specialistPct: 0, assistedPct: 0, generatedPct: 0, consultedPct: 0, strength: "", gap: "หลักสูตรใหม่ (draft) ยังไม่ได้ทำ L2 mapping", flag: "no-l2" as null | "passive" | "inconsistent" | "no-l2" },
 ];
 
 // ─── Curriculum Character ─────────────────────────────────────────────────────
@@ -453,12 +461,30 @@ export const curriculumCharacter = [
   },
   {
     faculty: "คณะนิเทศศาสตร์",
-    programs: 1,
-    character: "เริ่มต้นสายเนื้อหาดิจิทัล",
+    programs: 2,
+    character: "เริ่มต้นสายเนื้อหา/อีเว้นท์ดิจิทัล",
     description:
-      "การผลิตเนื้อหาสร้างสรรค์และประสบการณ์ดิจิทัล เพิ่งเริ่มร่างแผน (draft) — คณะนี้มีผู้ตอบ readiness ถึง 11 คน สะท้อนความสนใจสูง แต่หลักสูตรยังไม่ลง competency/mapping ครบ",
-    tags: ["Digital Content", "Creative Media", "Draft", "ยังไม่ map"],
+      "การผลิตเนื้อหาสร้างสรรค์ฯ และการผลิตอีเว้นท์ฯ เพิ่งเริ่มร่างแผน (draft) — คณะนี้มีผู้ตอบ readiness สูงสุดในมหาวิทยาลัยถึง 37 คน สะท้อนความสนใจสูงมาก แต่หลักสูตรยังไม่ลง competency/mapping ครบ",
+    tags: ["Digital Content", "Event/Exhibition", "Draft", "ยังไม่ map"],
     color: "#3a4859",
+  },
+  {
+    faculty: "คณะบริหารธุรกิจ",
+    programs: 1,
+    character: "การตลาดดิจิทัลครบวงจร AI",
+    description:
+      "การตลาดดิจิทัลวางกรอบสมรรถนะ AI ครบวงจรที่สุดในกลุ่มธุรกิจ (10 สมรรถนะ): prompt engineering → generative content → marketing analytics → automation/personalization → product management → ROI/budgeting → strategy อยู่ระหว่างแก้ไข (changes) ยังไม่ได้ทำ mapping — readiness ตอบ 20 คน",
+    tags: ["Digital Marketing", "Generative AI", "Marketing Analytics", "AI Product"],
+    color: "#b53030",
+  },
+  {
+    faculty: "คณะมนุษยศาสตร์และการจัดการการท่องเที่ยว",
+    programs: 2,
+    character: "น้องใหม่สายบริการ/ภาษา",
+    description:
+      "การจัดการการโรงแรม และภาษาอังกฤษ เพิ่งเริ่มส่ง (draft) ยังไม่ลง competency/mapping — readiness ตอบ 14 คน คณะสายบริการและภาษาที่เริ่มขยับเข้าสู่ AI-Ready Curriculum",
+    tags: ["Hospitality", "English/Language", "Draft", "ยังไม่ map"],
+    color: "#5b6b2f",
   },
 ];
 
