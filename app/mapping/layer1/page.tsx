@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import { UNESCO_DIMENSIONS, newRow, getDimension, getCompetency } from "@/lib/unesco";
@@ -35,6 +35,7 @@ const BackIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="no
 const EditIcon  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"   strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const CheckIcon = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"   strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const XIcon     = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const RefreshIcon = ({ spinning = false }: { spinning?: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={spinning ? "animate-spin" : undefined}><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>;
 
 // ─── Form field helpers ───────────────────────────────────────────────────────
 function FieldLabel({ children, sub }: { children: React.ReactNode; sub?: string }) {
@@ -126,7 +127,7 @@ function LangToggle({ lang, setLang }: { lang: "th" | "en"; setLang: (l: "th" | 
 
 // ─── Slide-over panel ─────────────────────────────────────────────────────────
 function RowPanel({
-  open, row, isNew, onClose, onSave, toolSuggestions = [], t,
+  open, row, isNew, onClose, onSave, toolSuggestions = [], t, saving = false, error = null,
 }: {
   open: boolean;
   row: MappingRow;
@@ -135,6 +136,8 @@ function RowPanel({
   onSave: (r: MappingRow) => void;
   toolSuggestions?: string[];
   t: T;
+  saving?: boolean;
+  error?: string | null;
 }) {
   const [draft, setDraft] = useState<MappingRow>(row);
   useEffect(() => { setDraft(row); }, [row]);
@@ -308,11 +311,18 @@ function RowPanel({
         </div>
 
         {/* Panel footer */}
-        <div style={{ padding: "14px 20px", borderTop: "1px solid #eef1f6", display: "flex", gap: 10, flexShrink: 0 }}>
-          <button onClick={onClose} className="btn" style={{ flex: 1 }}>{t.cancel}</button>
-          <button onClick={() => onSave(draft)} className="btn btn--primary" style={{ flex: 2 }}>
-            <SaveIcon /> {t.saveCourse}
-          </button>
+        <div style={{ padding: "14px 20px", borderTop: "1px solid #eef1f6", flexShrink: 0 }}>
+          {error && (
+            <div style={{ marginBottom: 10, padding: "8px 12px", borderRadius: 8, background: "#fdecec", border: "1px solid #f4d0d0", color: "#b53030", fontSize: 12.5 }}>
+              {error}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} className="btn" style={{ flex: 1 }} disabled={saving}>{t.cancel}</button>
+            <button onClick={() => onSave(draft)} className="btn btn--primary" style={{ flex: 2 }} disabled={saving}>
+              {saving ? <SpinIcon /> : <SaveIcon />} {saving ? t.savingCourse : t.saveCourse}
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -332,6 +342,7 @@ function Layer1MappingInner() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [saveMsgKey, setSaveMsgKey] = useState<SaveMsgKey>("autoSaved");
   const [dataLoaded, setDataLoaded] = useState(false);
 
@@ -339,9 +350,27 @@ function Layer1MappingInner() {
   const [panelOpen, setPanelOpen]   = useState(false);
   const [editIdx, setEditIdx]       = useState<number | null>(null);
   const [panelRow, setPanelRow]     = useState<MappingRow>(newRow());
+  const [panelSaving, setPanelSaving] = useState(false);
+  const [panelError, setPanelError]   = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedSet, setExpandedSet] = useState<Set<number>>(new Set());
 
   const draftKey = submissionId ? `bu_air_layer1_draft_${submissionId}` : "bu_air_layer1_draft";
+
+  // Fetches the submission + mapping fresh from the server and reconciles
+  // `rows` with whatever has actually been persisted — this is what lets a
+  // colleague's saved courses show up on this device without a manual reload.
+  const fetchMapping = useCallback(async (): Promise<Submission | null> => {
+    if (!submissionId) return null;
+    const res = await fetch(`/api/mapping/layer1?id=${encodeURIComponent(submissionId)}`);
+    if (!res.ok) throw res.status;
+    const d: Submission = await res.json();
+    setSub(d);
+    const saved = Array.isArray(d.layer1Mapping) && d.layer1Mapping.length > 0
+      ? d.layer1Mapping as MappingRow[] : null;
+    if (saved) setRows(saved);
+    return d;
+  }, [submissionId]);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -351,15 +380,14 @@ function Layer1MappingInner() {
       const sess: Session = JSON.parse(raw);
       if (sess.role !== "faculty" && sess.role !== "approver") { router.replace("/login"); return; }
       setSession(sess);
-      fetch(`/api/mapping/layer1?id=${encodeURIComponent(submissionId)}`)
-        .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-        .then((d: Submission) => {
+      fetchMapping()
+        .then((d) => {
+          if (!d) return;
           if (sess.role === "faculty" && d.submissionStatus !== "approved") { router.replace("/submit"); return; }
-          setSub(d);
-          const saved = Array.isArray(d.layer1Mapping) && d.layer1Mapping.length > 0
-            ? d.layer1Mapping as MappingRow[] : null;
-          if (saved) { setRows(saved); }
-          else {
+          if (!(Array.isArray(d.layer1Mapping) && d.layer1Mapping.length > 0)) {
+            // Nothing saved on the server yet — fall back to this device's
+            // local draft (e.g. a course typed but never sent due to a
+            // network error) rather than showing a blank list.
             const draft = localStorage.getItem(draftKey);
             if (draft) { try { const p = JSON.parse(draft); setRows(Array.isArray(p) && p.length > 0 ? p : []); } catch { setRows([]); } }
           }
@@ -368,54 +396,113 @@ function Layer1MappingInner() {
         .catch((code) => {
           if (code === 404) router.replace("/submit");
           else setError(t.errorLoad);
-          setLoading(false);
         })
         .finally(() => setLoading(false));
     } catch { router.replace("/login"); }
-  }, [router, submissionId, draftKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [router, submissionId, draftKey, fetchMapping]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isReadOnly = session?.role === "approver";
 
+  // Passively re-sync when the tab regains focus, so courses another
+  // faculty member (often sharing this same department login) just saved
+  // on their own device show up here without a manual reload.
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const onFocus = () => { fetchMapping().catch(() => {}); };
+    const onVisible = () => { if (document.visibilityState === "visible") onFocus(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [dataLoaded, fetchMapping]);
+
   useEffect(() => {
     if (!session || !dataLoaded || isReadOnly) return;
-    setSaveMsgKey("savingMsg");
     localStorage.setItem(draftKey, JSON.stringify(rows));
-    const timer = setTimeout(() => setSaveMsgKey("autoSaved"), 600);
-    return () => clearTimeout(timer);
   }, [rows, session, draftKey, dataLoaded, isReadOnly]);
+
+  const manualRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try { await fetchMapping(); } catch { /* ignore — keep showing last known list */ }
+    finally { setRefreshing(false); }
+  };
 
   const openNew = () => {
     if (isReadOnly) return;
     setPanelRow(newRow());
     setEditIdx(null);
+    setPanelError(null);
     setPanelOpen(true);
   };
   const openEdit = (idx: number) => {
     if (isReadOnly) return;
     setPanelRow({ ...rows[idx] });
     setEditIdx(idx);
+    setPanelError(null);
     setPanelOpen(true);
   };
-  const closePanel = () => setPanelOpen(false);
-  const savePanel = (r: MappingRow) => {
-    if (editIdx !== null) {
-      setRows((p) => p.map((row, i) => i === editIdx ? r : row));
-    } else {
-      setRows((p) => [...p, r]);
+  const closePanel = () => { if (!panelSaving) setPanelOpen(false); };
+
+  // Persists this one course to the server immediately — this is what
+  // "Save Course" actually does now. Previously it only updated local
+  // React state, so courses never reached Supabase unless someone also
+  // remembered to click the separate footer button, which is what caused
+  // courses to go missing across devices.
+  const savePanel = async (r: MappingRow) => {
+    if (!submissionId || panelSaving) return;
+    setPanelSaving(true);
+    setPanelError(null);
+    try {
+      const res = await fetch("/api/mapping/layer1", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: submissionId, row: r }),
+      });
+      if (!res.ok) { setPanelError(t.errorGeneral); return; }
+      const data: { mapping?: MappingRow[] } = await res.json();
+      if (Array.isArray(data.mapping)) setRows(data.mapping);
+      setPanelOpen(false);
+      setSaveMsgKey("savedMsg");
+    } catch {
+      setPanelError(t.errorConnect);
+    } finally {
+      setPanelSaving(false);
     }
-    setPanelOpen(false);
-  };
-  const deleteRow = (idx: number) => {
-    setRows((p) => p.filter((_, i) => i !== idx));
   };
 
+  const deleteRow = async (idx: number) => {
+    if (!submissionId) return;
+    const target = rows[idx];
+    if (!target) return;
+    setDeletingId(target.id);
+    try {
+      const res = await fetch("/api/mapping/layer1", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: submissionId, deleteId: target.id }),
+      });
+      if (!res.ok) { alert(t.errorGeneral); return; }
+      const data: { mapping?: MappingRow[] } = await res.json();
+      setRows(Array.isArray(data.mapping) ? data.mapping : (p => p.filter((_, i) => i !== idx))(rows));
+    } catch {
+      alert(t.errorConnect);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // Footer button no longer sends the in-memory row list (that was the
+  // overwrite bug — whoever clicked it last would blow away rows saved by
+  // colleagues in the meantime). Each course already persists itself via
+  // savePanel/deleteRow, so this only flips the section status flag.
   const saveMapping = async () => {
-    if (!session || saving) return;
+    if (!session || saving || !submissionId) return;
     setSaving(true);
     try {
       const res = await fetch("/api/mapping/layer1", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: submissionId, mapping: rows, action: "draft" }),
+        body: JSON.stringify({ id: submissionId, action: "submit" }),
       });
       if (res.ok) setSaveMsgKey("savedMsg");
       else alert(t.errorGeneral);
@@ -553,14 +640,25 @@ function Layer1MappingInner() {
 
         {/* Summary table */}
         <div style={{ background: "white", border: "1px solid #dde3eb", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "14px 18px", borderBottom: "1px solid #eef1f6", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>{t.mappingList}</h3>
-              <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} {t.courses}</span>
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid #eef1f6" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#14202e" }}>{t.mappingList}</h3>
+                <span style={{ fontSize: 12, color: "#677889" }}>{rows.length} {t.courses}</span>
+                {!isReadOnly && (
+                  <button onClick={manualRefresh} disabled={refreshing} title={t.refreshList}
+                    style={{ width: 26, height: 26, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: refreshing ? "default" : "pointer", display: "grid", placeItems: "center", color: "#677889" }}>
+                    <RefreshIcon spinning={refreshing} />
+                  </button>
+                )}
+              </div>
+              <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                <PlusIcon /> {t.addCourse}
+              </button>
             </div>
-            <button onClick={openNew} className="btn btn--primary" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-              <PlusIcon /> {t.addCourse}
-            </button>
+            {!isReadOnly && (
+              <div style={{ marginTop: 6, fontSize: 11.5, color: "#8b99a8" }}>{t.liveSyncNote}</div>
+            )}
           </div>
 
           {rows.length === 0 ? (
@@ -656,11 +754,11 @@ function Layer1MappingInner() {
                       <td style={{ padding: "12px 12px", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
                           {!isReadOnly && (<>
-                            <button onClick={() => openEdit(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="Edit">
+                            <button onClick={() => openEdit(idx)} disabled={deletingId === row.id} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #dde3eb", background: "white", cursor: "pointer", display: "grid", placeItems: "center", color: "#677889" }} title="Edit">
                               <EditIcon />
                             </button>
-                            <button onClick={() => deleteRow(idx)} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="Delete">
-                              <TrashIcon />
+                            <button onClick={() => deleteRow(idx)} disabled={deletingId === row.id} style={{ width: 28, height: 28, borderRadius: 7, border: "1px solid #f4d0d0", background: "#fdecec", cursor: deletingId === row.id ? "default" : "pointer", display: "grid", placeItems: "center", color: "#b53030" }} title="Delete">
+                              {deletingId === row.id ? <SpinIcon /> : <TrashIcon />}
                             </button>
                           </>)}
                         </div>
@@ -729,6 +827,8 @@ function Layer1MappingInner() {
         onSave={savePanel}
         toolSuggestions={Array.from(new Set(rows.flatMap((r) => r.aiTool.split(",").map((tp) => tp.trim()).filter(Boolean))))}
         t={t}
+        saving={panelSaving}
+        error={panelError}
       />
     </div>
   );

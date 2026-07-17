@@ -40,7 +40,10 @@ export const translations = {
     noNameYet:      "ยังไม่ระบุชื่อ",
     cancel:         "ยกเลิก",
     saveCourse:     "บันทึกรายวิชา",
-    saveMapping:    "บันทึกการแมพ",
+    saveMapping:    "ทำเครื่องหมายว่าเสร็จสมบูรณ์",
+    savingCourse:   "กำลังบันทึก...",
+    refreshList:    "รีเฟรชรายการ",
+    liveSyncNote:   "รายวิชาแต่ละรายการบันทึกขึ้นระบบทันทีที่กด \"บันทึกรายวิชา\" — อาจารย์ท่านอื่นในสาขาเดียวกันจะเห็นข้อมูลนี้ด้วย",
 
     // Form fields
     courseCode:       "รหัสวิชา",
@@ -417,7 +420,10 @@ export const translations = {
     noNameYet:      "No name yet",
     cancel:         "Cancel",
     saveCourse:     "Save Course",
-    saveMapping:    "Save Mapping",
+    saveMapping:    "Mark section complete",
+    savingCourse:   "Saving...",
+    refreshList:    "Refresh list",
+    liveSyncNote:   "Each course saves to the server the moment you click \"Save Course\" — other faculty in the same department will see it too.",
 
     // Form fields
     courseCode:       "Course Code",

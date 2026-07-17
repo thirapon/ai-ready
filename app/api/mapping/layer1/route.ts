@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { upsertMappingRow } from "@/lib/mapping-merge";
 
 export async function GET(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
@@ -34,8 +35,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   let body: {
-    facultyCode?: string;
-    mapping?: Record<string, string[]>;
+    id?: string;
+    row?: { id: string } & Record<string, unknown>;
+    deleteId?: string;
     action?: "draft" | "submit";
   };
 
@@ -45,24 +47,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
-  const { id, mapping, action = "draft" } = body as { id?: string; mapping?: Record<string, string[]>; action?: "draft" | "submit" };
+  const { id, row, deleteId, action } = body;
 
   if (!id) {
     return NextResponse.json({ error: "id is required." }, { status: 422 });
   }
 
-  const { error } = await getSupabaseClient()
-    .from("submissions")
-    .update({
-      layer1_mapping: mapping ?? {},
-      layer1_status: action === "submit" ? "submitted" : "in_progress",
-    })
-    .eq("id", id);
+  const result = await upsertMappingRow({
+    submissionId: id,
+    mappingColumn: "layer1_mapping",
+    statusColumn: "layer1_status",
+    row,
+    deleteId,
+    statusAction: action,
+  });
 
-  if (error) {
-    console.error("[/api/mapping/layer1 POST]", error.message);
+  if ("error" in result) {
+    console.error("[/api/mapping/layer1 POST]", result.error);
     return NextResponse.json({ error: "Failed to save." }, { status: 500 });
   }
+  if ("notFound" in result) {
+    return NextResponse.json({ error: "No submission found" }, { status: 404 });
+  }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, mapping: result.mapping });
 }
