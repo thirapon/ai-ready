@@ -64,3 +64,12 @@ CREATE INDEX IF NOT EXISTS submissions_status_idx ON submissions (status);
 --   ADD COLUMN IF NOT EXISTS layer2_mapping jsonb,
 --   ADD COLUMN IF NOT EXISTS layer2_status  text DEFAULT 'not_started'
 --     CHECK (layer2_status IN ('not_started','in_progress','submitted'));
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Progress tracking — approver-set follow-up status per program, independent
+-- of the approval `status` above (reviewed → approved → completed).
+-- Run this in the Supabase SQL editor if the table already exists.
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ALTER TABLE submissions
+--   ADD COLUMN IF NOT EXISTS progress_status text
+--     CHECK (progress_status IN ('reviewed','approved','completed'));

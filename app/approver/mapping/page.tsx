@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LayerStats { courses: number; mapped: number; }
+type ProgressStatus = "reviewed" | "approved" | "completed" | null;
 interface MappingRecord {
   id: string;
   ref_id: string | null;
@@ -17,6 +18,7 @@ interface MappingRecord {
   layer1_mapping: MappingRow[] | null;
   layer2_mapping: Layer2Row[] | null;
   status: string;
+  progress_status: string | null;
   last_saved: string | null;
 }
 interface ProcessedRow {
@@ -27,7 +29,17 @@ interface ProcessedRow {
   owner: string;
   layer1: LayerStats;
   layer2: LayerStats;
+  progressStatus: ProgressStatus;
 }
+
+// ─── Progress status (approver follow-up, set independently of approval status) ──
+const PROGRESS_META: Record<"none" | "reviewed" | "approved" | "completed", { label: string; color: string; bg: string; border: string }> = {
+  none:      { label: "ยังไม่ระบุ",        color: "#8b99a8", bg: "#f6f8fb", border: "#dde3eb" },
+  reviewed:  { label: "ประชุมพิจารณาแล้ว",  color: "#a86a14", bg: "#fcf3e1", border: "#f0dca6" },
+  approved:  { label: "อนุมัติแนวทางแล้ว",  color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
+  completed: { label: "เสร็จสมบูรณ์",       color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
+};
+const PROGRESS_OPTIONS: ("reviewed" | "approved" | "completed")[] = ["reviewed", "approved", "completed"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function computeLayer1(mapping: MappingRow[] | null): LayerStats {
@@ -91,6 +103,46 @@ function LayerCell({ layer, submissionId, layerNo }: { layer: LayerStats; submis
   );
 }
 
+function ProgressStatusCell({
+  row, isOpen, pos, onToggle, onSelect,
+}: {
+  row: ProcessedRow;
+  isOpen: boolean;
+  pos: { top: number; left: number } | null;
+  onToggle: (rect: DOMRect) => void;
+  onSelect: (next: ProgressStatus) => void;
+}) {
+  const meta = PROGRESS_META[row.progressStatus ?? "none"];
+  return (
+    <div className="pstatus">
+      <button
+        type="button"
+        onClick={(e) => onToggle(e.currentTarget.getBoundingClientRect())}
+        style={{
+          fontFamily: "inherit", cursor: "pointer", width: "100%",
+          display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 6,
+          fontSize: 12.5, fontWeight: 600, color: meta.color, background: meta.bg,
+          border: `1px ${row.progressStatus ? "solid" : "dashed"} ${row.progressStatus ? meta.border : "#b9c3cf"}`,
+          borderRadius: 20, padding: "5px 10px",
+        }}
+      >
+        {meta.label}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {isOpen && pos && (
+        <div className="pstatus-menu" style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 50 }}>
+          {PROGRESS_OPTIONS.map((k) => (
+            <div key={k} className="pstatus-menu__item" onClick={() => onSelect(k)}>{PROGRESS_META[k].label}</div>
+          ))}
+          {row.progressStatus && (
+            <div className="pstatus-menu__item pstatus-menu__item--reset" onClick={() => onSelect(null)}>— ยังไม่ระบุ —</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 const TABS = [
   { key: "all",      label: "ทุกหลักสูตร" },
@@ -108,6 +160,26 @@ export default function MappingDashboard() {
   const [tab, setTab] = useState<TabKey>("all");
   const [search, setSearch] = useState("");
   const [faculty, setFaculty] = useState("all");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [toast, setToast] = useState<{ rowId: string; program: string; prevValue: ProgressStatus; label: string } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      if ((e.target as HTMLElement).closest(".pstatus")) return;
+      setOpenMenuId(null);
+    }
+    function onScrollOrResize() { setOpenMenuId(null); }
+    document.addEventListener("mousedown", onDocMouseDown);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, []);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY);
@@ -134,6 +206,7 @@ export default function MappingDashboard() {
           owner: (s.form_data?.owner as string) ?? "—",
           layer1: computeLayer1(s.layer1_mapping),
           layer2: computeLayer2(s.layer2_mapping),
+          progressStatus: (s.progress_status as ProgressStatus) ?? null,
         }));
         setRows(processed);
       })
@@ -175,6 +248,37 @@ export default function MappingDashboard() {
     sessionStorage.removeItem(SESSION_KEY);
     router.push("/login");
   };
+
+  function persistProgressStatus(rowId: string, next: ProgressStatus) {
+    setRows((rs) => rs.map((r) => (r.id === rowId ? { ...r, progressStatus: next } : r)));
+    fetch("/api/approver/progress-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ submissionId: rowId, progressStatus: next }),
+    }).catch(() => {});
+  }
+
+  function handleToggleMenu(rowId: string, rect: DOMRect) {
+    setMenuPos({ top: rect.bottom + 6, left: rect.left });
+    setOpenMenuId((cur) => (cur === rowId ? null : rowId));
+  }
+
+  function handleProgressSelect(row: ProcessedRow, next: ProgressStatus) {
+    setOpenMenuId(null);
+    if (row.progressStatus === next) return;
+    const prev = row.progressStatus;
+    persistProgressStatus(row.id, next);
+    setToast({ rowId: row.id, program: row.program, prevValue: prev, label: PROGRESS_META[next ?? "none"].label });
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }
+
+  function handleUndoProgress() {
+    if (!toast) return;
+    persistProgressStatus(toast.rowId, toast.prevValue);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(null);
+  }
 
   if (!session || loading) return (
     <div style={{ minHeight: "100vh", background: "#f6f8fb", display: "grid", placeItems: "center" }}>
@@ -304,6 +408,7 @@ export default function MappingDashboard() {
                   <th style={{ width: 220 }}>Layer 1 · UNESCO</th>
                   <th style={{ width: 220 }}>Layer 2 · School &amp; Industry</th>
                   <th style={{ width: 100 }}>ภาพรวม</th>
+                  <th style={{ width: 168 }}>สถานะติดตาม</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,6 +444,15 @@ export default function MappingDashboard() {
                           </a>
                         </div>
                       </td>
+                      <td>
+                        <ProgressStatusCell
+                          row={r}
+                          isOpen={openMenuId === r.id}
+                          pos={openMenuId === r.id ? menuPos : null}
+                          onToggle={(rect) => handleToggleMenu(r.id, rect)}
+                          onSelect={(next) => handleProgressSelect(r, next)}
+                        />
+                      </td>
                     </tr>
                   );
                 })}
@@ -351,6 +465,23 @@ export default function MappingDashboard() {
           ระบบบริหารหลักสูตร AI-Ready · มหาวิทยาลัยกรุงเทพ
         </div>
       </main>
+
+      {/* Toast */}
+      {toast && (
+        <div className="toast">
+          <div className="toast__icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div className="toast__text">
+            <b>เปลี่ยนสถานะติดตามแล้ว</b>
+            <span>{toast.program} · {toast.label}</span>
+          </div>
+          <button className="toast__undo" onClick={handleUndoProgress}>เลิกทำ</button>
+          <button className="toast__close" onClick={() => { if (toastTimer.current) clearTimeout(toastTimer.current); setToast(null); }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
