@@ -4,7 +4,7 @@ import { getSupabaseClient } from "@/lib/supabase";
 export async function GET() {
   const { data, error } = await getSupabaseClient()
     .from("submissions")
-    .select("id, ref_id, faculty_name, faculty_code, program_name, form_data, layer1_mapping, layer2_mapping, status, submitted_at, last_saved")
+    .select("id, ref_id, faculty_name, faculty_code, program_name, form_data, layer1_mapping, layer2_mapping, status, progress_status, submitted_at, last_saved")
     .order("created_at", { ascending: false });
 
   if (error) {
