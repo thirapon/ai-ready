@@ -160,6 +160,7 @@ export default function MappingDashboard() {
   const [tab, setTab] = useState<TabKey>("all");
   const [search, setSearch] = useState("");
   const [faculty, setFaculty] = useState("all");
+  const [progressFilter, setProgressFilter] = useState<"all" | "none" | "reviewed" | "approved" | "completed">("all");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [toast, setToast] = useState<{ rowId: string; program: string; prevValue: ProgressStatus; label: string } | null>(null);
@@ -226,11 +227,18 @@ export default function MappingDashboard() {
   const l2Done = useMemo(() => rows.filter((r) => isDone(r.layer2)).length, [rows]);
   const fullyDone = useMemo(() => rows.filter((r) => isDone(r.layer1) && isDone(r.layer2)).length, [rows]);
 
+  const progressCounts = useMemo(() => {
+    const c = { none: 0, reviewed: 0, approved: 0, completed: 0 };
+    rows.forEach((r) => { c[r.progressStatus ?? "none"]++; });
+    return c;
+  }, [rows]);
+
   const filtered = useMemo(() => {
     let list = rows.slice();
     if (tab === "done") list = list.filter((r) => isDone(r.layer1) && isDone(r.layer2));
     if (tab === "progress") list = list.filter((r) => !(isDone(r.layer1) && isDone(r.layer2)));
     if (faculty !== "all") list = list.filter((r) => r.faculty === faculty);
+    if (progressFilter !== "all") list = list.filter((r) => (r.progressStatus ?? "none") === progressFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter((r) =>
@@ -241,7 +249,7 @@ export default function MappingDashboard() {
       );
     }
     return list;
-  }, [rows, tab, faculty, search]);
+  }, [rows, tab, faculty, progressFilter, search]);
 
   const handleLogout = () => {
     localStorage.removeItem(SESSION_KEY);
@@ -361,6 +369,40 @@ export default function MappingDashboard() {
               <div className="stat-card__sub">{s.sub}</div>
             </div>
           ))}
+        </div>
+
+        {/* Progress status summary + filter */}
+        <div>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#14202e" }}>สรุปสถานะติดตาม</div>
+            {progressFilter !== "all" && (
+              <button onClick={() => setProgressFilter("all")}
+                style={{ fontFamily: "inherit", cursor: "pointer", background: "none", border: "none", fontSize: 12.5, fontWeight: 600, color: "#1a4f8a", padding: 0 }}>
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+          <div className="stats">
+            {([
+              { key: "none",      icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>, sub: `จาก ${rows.length} หลักสูตร` },
+              { key: "reviewed",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>, sub: "หลักสูตร" },
+              { key: "approved",  icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>, sub: "หลักสูตร" },
+              { key: "completed", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, sub: "หลักสูตร" },
+            ] as { key: "none" | "reviewed" | "approved" | "completed"; icon: React.ReactNode; sub: string }[]).map((s) => {
+              const meta = PROGRESS_META[s.key];
+              return (
+                <div key={s.key}
+                  className={`stat-card${progressFilter === s.key ? " is-on" : ""}`}
+                  style={{ "--stat-color": meta.color, "--stat-bg": meta.bg, cursor: "pointer" } as React.CSSProperties}
+                  onClick={() => setProgressFilter((cur) => (cur === s.key ? "all" : s.key))}
+                >
+                  <div className="stat-card__head"><span>{meta.label}</span><span className="stat-card__icon">{s.icon}</span></div>
+                  <div className="stat-card__num">{progressCounts[s.key]}</div>
+                  <div className="stat-card__sub">{s.sub}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Tabs */}
