@@ -33,11 +33,11 @@ interface ProcessedRow {
 }
 
 // ─── Progress status (approver follow-up, set independently of approval status) ──
-const PROGRESS_META: Record<"none" | "reviewed" | "approved" | "completed", { label: string; color: string; bg: string; border: string }> = {
-  none:      { label: "ยังไม่ระบุ",        color: "#8b99a8", bg: "#f6f8fb", border: "#dde3eb" },
-  reviewed:  { label: "ประชุมพิจารณาแล้ว",  color: "#a86a14", bg: "#fcf3e1", border: "#f0dca6" },
-  approved:  { label: "อนุมัติแนวทางแล้ว",  color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
-  completed: { label: "เสร็จสมบูรณ์",       color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
+const PROGRESS_META: Record<"none" | "reviewed" | "approved" | "completed", { label: string; en: string; color: string; bg: string; border: string }> = {
+  none:      { label: "ยังไม่ระบุ",        en: "",           color: "#8b99a8", bg: "#f6f8fb", border: "#dde3eb" },
+  reviewed:  { label: "ประชุมพิจารณาแล้ว",  en: "reviewed",   color: "#a86a14", bg: "#fcf3e1", border: "#f0dca6" },
+  approved:  { label: "อนุมัติแนวทางแล้ว",  en: "approved",   color: "#1a4f8a", bg: "#eef4fb", border: "#dbe7f4" },
+  completed: { label: "เสร็จสมบูรณ์",       en: "completed",  color: "#137a4a", bg: "#e6f4ec", border: "#b5dbc5" },
 };
 const PROGRESS_OPTIONS: ("reviewed" | "approved" | "completed")[] = ["reviewed", "approved", "completed"];
 
@@ -396,7 +396,10 @@ export default function MappingDashboard() {
                   style={{ "--stat-color": meta.color, "--stat-bg": meta.bg, cursor: "pointer" } as React.CSSProperties}
                   onClick={() => setProgressFilter((cur) => (cur === s.key ? "all" : s.key))}
                 >
-                  <div className="stat-card__head"><span>{meta.label}</span><span className="stat-card__icon">{s.icon}</span></div>
+                  <div className="stat-card__head">
+                    <span>{meta.label}{meta.en && ` (${meta.en})`}</span>
+                    <span className="stat-card__icon">{s.icon}</span>
+                  </div>
                   <div className="stat-card__num">{progressCounts[s.key]}</div>
                   <div className="stat-card__sub">{s.sub}</div>
                 </div>
