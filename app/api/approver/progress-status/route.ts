@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession } from "@/lib/auth";
 
 const VALID_STATUSES = ["reviewed", "approved", "completed"] as const;
 type ProgressStatus = (typeof VALID_STATUSES)[number] | null;
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req, ["approver"]);
+  if (auth instanceof NextResponse) return auth;
+
   let body: { submissionId?: string; progressStatus?: ProgressStatus };
   try {
     body = await req.json();

@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY, FACULTIES } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface FRRow {
@@ -752,8 +753,7 @@ export default function FacultyReadinessPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
+    clearSession();
     router.push("/login");
   };
 

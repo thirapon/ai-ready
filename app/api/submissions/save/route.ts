@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession, forbidden, submissionFacultyCode } from "@/lib/auth";
 import { sendSubmissionNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req, ["faculty"]);
+  if (auth instanceof NextResponse) return auth;
+
   let body: {
     submissionId?: string;
     facultyCode?: string;
@@ -21,6 +25,12 @@ export async function POST(req: NextRequest) {
 
   if (!facultyCode || !facultyName) {
     return NextResponse.json({ error: "facultyCode and facultyName are required." }, { status: 422 });
+  }
+  if (auth.role !== "faculty" || facultyCode !== auth.code) return forbidden();
+  if (submissionId) {
+    const owner = await submissionFacultyCode(submissionId);
+    if (!owner) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (owner !== auth.code) return forbidden();
   }
 
   const now = new Date().toISOString();

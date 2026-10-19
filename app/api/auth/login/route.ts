@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FACULTIES, APPROVER, facultyEnvKey, findScopedViewer } from "@/lib/faculties";
 import { getSupabaseClient } from "@/lib/supabase";
+import { AUTH_COOKIE, REMEMBER_TTL_S, SESSION_TTL_S, signSession } from "@/lib/session";
+
+type SessionInput = Parameters<typeof signSession>[0];
+
+/** JSON response that also sets the signed, httpOnly session cookie. */
+async function withSessionCookie(body: Record<string, unknown>, session: SessionInput, remember: boolean) {
+  const ttl = remember ? REMEMBER_TTL_S : SESSION_TTL_S;
+  const res = NextResponse.json(body);
+  res.cookies.set(AUTH_COOKIE, await signSession(session, ttl), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    // No maxAge without "remember me" → browser-session cookie (token still expires in 1 day)
+    ...(remember ? { maxAge: ttl } : {}),
+  });
+  return res;
+}
 
 interface LoginBody {
   role?: unknown;
@@ -68,13 +86,13 @@ export async function POST(req: NextRequest) {
       console.error("[auth/login] session log failed:", err);
     }
 
-    return NextResponse.json({
+    return withSessionCookie({
       success: true,
       role: "faculty",
       code: faculty.code,
       name: faculty.name,
       redirect: "/submit",
-    });
+    }, { role: "faculty", code: faculty.code }, rememberMe);
   }
 
   // ── Approver login ─────────────────────────────────────────────────────────
@@ -111,13 +129,13 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         console.error("[auth/login] session log failed:", err);
       }
-      return NextResponse.json({
+      return withSessionCookie({
         success: true,
         role: "approver",
         name: viewer.name,
         scope: viewer.scope,
         redirect: "/approver/mapping",
-      });
+      }, { role: "viewer", username: viewer.username, scope: viewer.scope }, rememberMe);
     }
 
     const expectedPw = process.env.APPROVER_PASSWORD;
@@ -147,11 +165,11 @@ export async function POST(req: NextRequest) {
       console.error("[auth/login] session log failed:", err);
     }
 
-    return NextResponse.json({
+    return withSessionCookie({
       success: true,
       role: "approver",
       name: APPROVER.name,
       redirect: "/approver",
-    });
+    }, { role: "approver" }, rememberMe);
   }
 }

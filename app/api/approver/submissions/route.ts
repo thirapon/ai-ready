@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireSession(req, ["approver"]);
+  if (auth instanceof NextResponse) return auth;
+
   const { data, error } = await getSupabaseClient()
     .from("submissions")
     .select(

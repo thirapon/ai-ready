@@ -1,6 +1,6 @@
 "use client";
 
-import { SESSION_KEY } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 import { useLang, type T, type Lang } from "@/lib/i18n";
 
 interface TopbarProps {
@@ -17,8 +17,7 @@ export function Topbar({ facultyName, t: tProp, lang: langProp, setLang: setLang
   const setLang = setLangProp ?? fallback.setLang;
 
   const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
+    clearSession();
     window.location.href = "/login";
   };
 

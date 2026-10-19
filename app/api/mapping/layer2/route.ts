@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession, forbidden, submissionFacultyCode } from "@/lib/auth";
+import { canAccessFaculty } from "@/lib/session";
 import { upsertMappingRow } from "@/lib/mapping-merge";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req, ["faculty", "approver", "viewer"]);
+  if (auth instanceof NextResponse) return auth;
+
   const id = req.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
@@ -17,6 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canAccessFaculty(auth, data.faculty_code)) return forbidden();
 
   return NextResponse.json({
     submissionStatus: data.status,
@@ -29,6 +35,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req, ["faculty"]);
+  if (auth instanceof NextResponse) return auth;
+
   let body: {
     id?: string;
     row?: { id: string } & Record<string, unknown>;
@@ -40,6 +49,9 @@ export async function POST(req: NextRequest) {
 
   const { id, row, deleteId, action } = body;
   if (!id) return NextResponse.json({ error: "id is required." }, { status: 422 });
+  const owner = await submissionFacultyCode(id);
+  if (!owner) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!canAccessFaculty(auth, owner)) return forbidden();
 
   const result = await upsertMappingRow({
     submissionId: id,

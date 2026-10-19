@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 import { UNESCO_DIMENSIONS, newRow, getDimension, getCompetency } from "@/lib/unesco";
 import type { MappingRow } from "@/lib/unesco";
 import ToolChipInput from "@/components/form/ToolChipInput";
@@ -511,7 +512,7 @@ function Layer1MappingInner() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY);
+    clearSession();
     router.push("/login");
   };
 

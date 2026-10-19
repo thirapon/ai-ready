@@ -1,4 +1,6 @@
 import { google } from "googleapis";
+import { FACULTIES } from "@/lib/faculties";
+import type { AuthSession } from "@/lib/session";
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID!;
 const TAB_NAME       = process.env.GOOGLE_SHEETS_TAB ?? "Raw Data";
@@ -79,4 +81,12 @@ export async function fetchFacultyReadiness(): Promise<FRRow[]> {
       qb:    String(r[17] ?? "").trim(),
       qc:    String(r[18] ?? "").trim(),
     }));
+}
+
+/** Rows this session may see — FR data is keyed by faculty *name*. */
+export function rowsVisibleTo(rows: FRRow[], s: AuthSession): FRRow[] {
+  if (s.role === "approver") return rows;
+  const codes = s.role === "faculty" ? [s.code] : s.scope;
+  const names = new Set(FACULTIES.filter((f) => codes.includes(f.code)).map((f) => f.name));
+  return rows.filter((r) => names.has(r.f));
 }

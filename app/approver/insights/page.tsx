@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
 import {
   INSIGHTS_GENERATED_AT,
@@ -356,8 +357,7 @@ export default function ExecutiveInsights() {
   }, [submissions, selectedProgramId]);
 
   const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
+    clearSession();
     router.push("/login");
   };
 

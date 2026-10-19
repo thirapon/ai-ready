@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession } from "@/lib/auth";
 import { sendDecisionNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
+  const auth = await requireSession(req, ["approver"]);
+  if (auth instanceof NextResponse) return auth;
+
   let body: {
     submissionId?: string;
     action?: "approve" | "changes" | "reject";

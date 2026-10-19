@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 import type { MappingRow, Layer2Row } from "@/lib/unesco";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -252,8 +253,7 @@ export default function MappingDashboard() {
   }, [rows, tab, faculty, progressFilter, search]);
 
   const handleLogout = () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
+    clearSession();
     router.push("/login");
   };
 

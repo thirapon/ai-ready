@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseClient } from "@/lib/supabase";
+import { requireSession, forbidden } from "@/lib/auth";
+import { canAccessFaculty } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
+  const auth = await requireSession(req, ["faculty", "approver", "viewer"]);
+  if (auth instanceof NextResponse) return auth;
+
   const facultyCode = req.nextUrl.searchParams.get("facultyCode");
   const id = req.nextUrl.searchParams.get("id");
 
@@ -9,7 +14,7 @@ export async function GET(req: NextRequest) {
   if (id) {
     const { data, error } = await getSupabaseClient()
       .from("submissions")
-      .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved,layer1_status,form_data,program_name")
+      .select("id,faculty_code,status,ref_id,version,approver_comment,submitted_at,last_saved,layer1_status,form_data,program_name")
       .eq("id", id)
       .maybeSingle();
 
@@ -17,11 +22,13 @@ export async function GET(req: NextRequest) {
       console.error("[/api/submissions GET by id]", error.message);
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
+    if (data && !canAccessFaculty(auth, data.faculty_code)) return forbidden();
     return NextResponse.json({ submission: data ?? null });
   }
 
   // Fetch all submissions for a faculty
   if (facultyCode) {
+    if (!canAccessFaculty(auth, facultyCode)) return forbidden();
     const { data, error } = await getSupabaseClient()
       .from("submissions")
       .select("id,status,ref_id,version,approver_comment,submitted_at,last_saved,program_name,layer1_mapping,layer2_mapping")

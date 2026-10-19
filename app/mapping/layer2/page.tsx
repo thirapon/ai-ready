@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_KEY } from "@/lib/faculties";
+import { clearSession } from "@/lib/session-client";
 import { newLayer2Row } from "@/lib/unesco";
 import type { Layer2Row } from "@/lib/unesco";
 import ToolChipInput from "@/components/form/ToolChipInput";
@@ -475,7 +476,7 @@ function Layer2MappingInner() {
     } catch { alert(t.errorConnect); } finally { setSaving(false); }
   };
 
-  const handleLogout = () => { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); router.push("/login"); };
+  const handleLogout = () => { clearSession(); router.push("/login"); };
 
   if (loading || !session) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ color: "#677889", fontSize: 14 }}>{t.loading}</div></div>;
   if (error) return <div style={{ minHeight: "100vh", background: "#f0f3f8", display: "grid", placeItems: "center" }}><div style={{ textAlign: "center" }}><div style={{ color: "#b53030", fontSize: 14, marginBottom: 12 }}>{error}</div><button className="btn btn--primary" onClick={() => router.push("/submit")}>{t.backHome}</button></div></div>;
