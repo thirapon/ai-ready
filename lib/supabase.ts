@@ -8,7 +8,9 @@ import { createClient } from "@supabase/supabase-js";
  */
 export function getSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Server-only service-role key (bypasses RLS). Never import this module from
+  // a client component. Anon key is a fallback until the env var is set in Vercel.
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     throw new Error(
@@ -20,6 +22,7 @@ export function getSupabaseClient() {
 
   // Disable Next.js fetch cache so every API call gets live data from Supabase
   return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
     global: {
       fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }),
     },
