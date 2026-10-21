@@ -131,6 +131,8 @@ Insights ใน `/approver/insights` แบ่งเป็น 2 ส่วน:
 // รัน node script จาก project root
 const { createClient } = require('@supabase/supabase-js');
 // ดึง submissions table — form_data.competencies, sectors, faculty_name, status
+// ⚠️ ตาราง submissions เปิด RLS แล้ว (2026-10-21) — ต้องใช้ SUPABASE_SERVICE_ROLE_KEY จาก .env.local
+//    anon key จะได้ 0 แถว: createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 ```
 
 **2. ดึงข้อมูล Google Sheets Faculty Readiness**
